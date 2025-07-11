@@ -269,7 +269,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -294,7 +294,7 @@ const EditProfileScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* תמונת פרופיל */}
+        {/**/}
         <View style={styles.avatarSection}>
           <View style={styles.avatarContainer}>
             <UserAvatar
@@ -320,7 +320,7 @@ const EditProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* פרטי הפרופיל */}
+        {/**/}
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Profile Information</Text>
           
@@ -363,7 +363,7 @@ const EditProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* הגדרות אבטחה */}
+        {/**/}
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Security</Text>
           
@@ -379,7 +379,7 @@ const EditProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* כפתור שמירה */}
+        {/**/}
         <View style={styles.buttonSection}>
           <TouchableOpacity
             style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}

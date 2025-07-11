@@ -1,4 +1,3 @@
-// components/screens/posts/EditPostScreen.js
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -21,7 +20,6 @@ import { recipeService } from '../../../services/recipeService';
 import { groupService } from '../../../services/GroupService';
 import { useAuth } from '../../../services/AuthContext';
 
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',
@@ -49,10 +47,8 @@ const MEAT_TYPES = [
 const EditPostScreen = ({ route, navigation }) => {
   const { currentUser } = useAuth();
   
-  // קבלת הנתונים מהניווט
   const { postId, postData, isGroupPost = false, groupId = null, groupName = null } = route.params;
 
-  // State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [ingredients, setIngredients] = useState('');
@@ -70,7 +66,6 @@ const EditPostScreen = ({ route, navigation }) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showMeatTypeModal, setShowMeatTypeModal] = useState(false);
 
-  // טעינת הנתונים הקיימים
   useEffect(() => {
     if (postData) {
       console.log('📝 Loading existing post data for editing:', postData.title);
@@ -83,14 +78,12 @@ const EditPostScreen = ({ route, navigation }) => {
       setMeatType(postData.meatType || '');
       setServings(postData.servings?.toString() || '');
       
-      // טיפול בזמן הכנה
       const totalMinutes = postData.prepTime || 0;
       const hours = Math.floor(totalMinutes / 60);
       const minutes = totalMinutes % 60;
       setPrepTimeHours(hours > 0 ? hours.toString() : '');
       setPrepTimeMinutes(minutes > 0 ? minutes.toString() : '');
       
-      // שמירת התמונה המקורית
       if (postData.image) {
         setOriginalImage(postData.image);
       }
@@ -128,14 +121,12 @@ const EditPostScreen = ({ route, navigation }) => {
       newErrors.servings = 'Number of servings is required';
     }
     
-    // Validate prep time
     const hours = parseInt(prepTimeHours) || 0;
     const minutes = parseInt(prepTimeMinutes) || 0;
     if (hours === 0 && minutes === 0) {
       newErrors.prepTime = 'Preparation time is required';
     }
 
-    // Validate servings is a number
     if (servings && isNaN(parseInt(servings))) {
       newErrors.servings = 'Servings must be a number';
     }
@@ -209,22 +200,17 @@ const EditPostScreen = ({ route, navigation }) => {
 
       let result;
       
-      // קביעת התמונה לשליחה
       let imageToSend = null;
       if (image) {
-        // תמונה חדשה נבחרה
         imageToSend = image.uri;
       } else if (originalImage) {
-        // השאר את התמונה המקורית
         updateData.image = originalImage;
       }
 
       if (isGroupPost && groupId) {
-        // עדכון פוסט של קבוצה
         console.log('🏠 Updating group post...');
         result = await groupService.updateGroupPost(groupId, postId, updateData, imageToSend);
       } else {
-        // עדכון פוסט רגיל
         console.log('🍳 Updating regular post...');
         result = await recipeService.updateRecipe(postId, updateData, imageToSend);
       }
@@ -293,7 +279,7 @@ const EditPostScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -308,7 +294,7 @@ const EditPostScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Group Header אם זה פוסט לקבוצה */}
+        {/**/}
         {isGroupPost && groupName && (
           <View style={styles.groupHeader}>
             <View style={styles.groupHeaderIcon}>
@@ -322,7 +308,7 @@ const EditPostScreen = ({ route, navigation }) => {
         )}
 
         <View style={styles.form}>
-          {/* Recipe Title */}
+          {/**/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Recipe Title *</Text>
             <TextInput
@@ -338,7 +324,7 @@ const EditPostScreen = ({ route, navigation }) => {
             {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
           </View>
 
-          {/* Recipe Description */}
+          {/**/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Description *</Text>
             <TextInput
@@ -356,7 +342,7 @@ const EditPostScreen = ({ route, navigation }) => {
             {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
           </View>
 
-          {/* Category and Meat Type Row */}
+          {/**/}
           <View style={styles.rowContainer}>
             <View style={styles.halfWidth}>
               <Text style={styles.label}>Category *</Text>
@@ -387,7 +373,7 @@ const EditPostScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Prep Time and Servings Row */}
+          {/**/}
           <View style={styles.rowContainer}>
             <View style={styles.halfWidth}>
               <Text style={styles.label}>Prep Time *</Text>
@@ -440,7 +426,7 @@ const EditPostScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {/* Ingredients */}
+          {/**/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Ingredients *</Text>
             <TextInput
@@ -458,7 +444,7 @@ const EditPostScreen = ({ route, navigation }) => {
             {errors.ingredients && <Text style={styles.errorText}>{errors.ingredients}</Text>}
           </View>
 
-          {/* Instructions */}
+          {/**/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Instructions *</Text>
             <TextInput
@@ -476,7 +462,7 @@ const EditPostScreen = ({ route, navigation }) => {
             {errors.instructions && <Text style={styles.errorText}>{errors.instructions}</Text>}
           </View>
 
-          {/* Image Section */}
+          {/**/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Recipe Photo</Text>
             
@@ -512,7 +498,7 @@ const EditPostScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          {/* Update Button */}
+          {/**/}
           <TouchableOpacity
             style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
@@ -535,7 +521,7 @@ const EditPostScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Category Modal */}
+      {/**/}
       <Modal
         visible={showCategoryModal}
         animationType="slide"
@@ -559,7 +545,7 @@ const EditPostScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      {/* Meat Type Modal */}
+      {/**/}
       <Modal
         visible={showMeatTypeModal}
         animationType="slide"

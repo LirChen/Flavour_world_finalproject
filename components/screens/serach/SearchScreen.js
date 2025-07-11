@@ -1,4 +1,3 @@
-// components/screens/search/SearchScreen.js
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -37,9 +36,8 @@ const FLAVORWORLD_COLORS = {
 const SearchScreen = ({ navigation }) => {
   const { currentUser } = useAuth();
   
-  // State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTab, setSelectedTab] = useState('all'); // all, posts, users, groups
+  const [selectedTab, setSelectedTab] = useState('all'); 
   const [searchResults, setSearchResults] = useState({
     posts: [],
     users: [],
@@ -48,15 +46,14 @@ const SearchScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
 
-  // Debounced search
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) { // חיפוש מ-2 תווים
+      if (searchQuery.trim().length >= 2) { 
         performSearch();
       } else {
         setSearchResults({ posts: [], users: [], groups: [] });
       }
-    }, 300); // דיליי של 300ms
+    }, 300);
 
     return () => clearTimeout(delayedSearch);
   }, [searchQuery]);
@@ -68,7 +65,6 @@ const SearchScreen = ({ navigation }) => {
     try {
       console.log('🔍 Searching for:', searchQuery);
       
-      // חיפוש מקבילי של כל הסוגים
       const [postsResult, usersResult, groupsResult] = await Promise.all([
         searchPosts(),
         searchUsers(),
@@ -81,7 +77,6 @@ const SearchScreen = ({ navigation }) => {
         groups: groupsResult || []
       });
 
-      // שמור חיפוש אחרון
       addToRecentSearches(searchQuery);
       
     } catch (error) {
@@ -111,18 +106,15 @@ const SearchScreen = ({ navigation }) => {
     return [];
   };
 
-  // ✅ עדכון פונקציית חיפוש המשתמשים עם axios
   const searchUsers = async () => {
     try {
       console.log('🔍 Searching users for:', searchQuery);
       
-      // קריאה ל-API endpoint באמצעות userService
       const users = await userService.searchUsers(searchQuery, currentUser?.id || currentUser?._id);
       
       if (users && users.length > 0) {
         console.log('👥 Found users:', users.length);
         
-        // המרת הנתונים לפורמט שמתאים לקומפוננטה
         return users.map(user => ({
           _id: user.userId,
           id: user.userId,
@@ -138,14 +130,12 @@ const SearchScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Search users error:', error);
-      // לא נזרוק שגיאה כי אנחנו לא רוצים שהאפליקציה תקרוס
       return [];
     }
   };
 
   const searchGroups = async () => {
     try {
-      // ✅ השתמש בפונקציית חיפוש חדשה שכוללת קבוצות פרטיות
       const result = await groupService.searchGroups(searchQuery, currentUser?.id || currentUser?._id);
       
       if (result.success) {
@@ -199,7 +189,7 @@ const SearchScreen = ({ navigation }) => {
     <PostComponent
       post={item}
       navigation={navigation}
-      onRefreshData={() => {}} // חיפוש לא צריך refresh
+      onRefreshData={() => {}} 
     />
   );
 
@@ -283,7 +273,7 @@ const SearchScreen = ({ navigation }) => {
         return searchResults.users;
       case 'groups':
         return searchResults.groups;
-      default: // 'all'
+      default: 
         return [
           ...searchResults.posts.map(item => ({ ...item, type: 'post' })),
           ...searchResults.users.map(item => ({ ...item, type: 'user' })),
@@ -335,7 +325,7 @@ const SearchScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -362,7 +352,7 @@ const SearchScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Content */}
+      {/**/}
       {searchQuery.trim().length === 0 ? (
         <View style={styles.content}>
           {recentSearches.length > 0 && renderRecentSearches()}

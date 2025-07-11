@@ -1,10 +1,8 @@
-// services/chatServices.js - תיקון מלא
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API_BASE_URL = 'http://192.168.1.222:3000/api';
 
-// Create axios instance
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -13,7 +11,6 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor
 apiClient.interceptors.request.use(
   async (config) => {
     try {
@@ -22,14 +19,12 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error('Failed to get token:', error);
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -52,11 +47,9 @@ class ChatService {
 
   async initializeSocket(userId) {
     try {
-      // ✅ תיקון: וודא שאנחנו שומרים את ה-ID הנכון
       console.log('💬 Initializing chat service for user:', userId);
       this.currentUser = userId;
       
-      // בדוק אם זה ObjectId או ID רגיל
       if (typeof userId === 'object' && userId._id) {
         this.currentUser = userId._id;
       } else if (typeof userId === 'object' && userId.id) {
@@ -67,24 +60,20 @@ class ChatService {
       this.startNotificationPolling();
       return true;
     } catch (error) {
-      console.error('❌ Chat service initialization error:', error);
       return false;
     }
   }
 
-  // ✅ פונקציה חדשה לקבלת ה-ID הנכון
   getCurrentUserId() {
     if (!this.currentUser) {
       console.warn('⚠️ Current user not set in chat service');
       return null;
     }
     
-    // אם זה אובייקט, קח את ה-ID
     if (typeof this.currentUser === 'object') {
       return this.currentUser._id || this.currentUser.id;
     }
     
-    // אם זה string, החזר כמו שזה
     return this.currentUser;
   }
 
@@ -111,7 +100,6 @@ class ChatService {
           });
         }
       } catch (error) {
-        console.error('Notification polling error:', error);
       }
     }, 30000);
   }
@@ -123,7 +111,6 @@ class ChatService {
     }
   }
 
-  // Event listeners
   onMessage(callback) {
     this.messageListeners.push(callback);
     return () => {
@@ -151,8 +138,6 @@ class ChatService {
       this.notificationListeners = this.notificationListeners.filter(cb => cb !== callback);
     };
   }
-
-  // ========== FOLLOW FUNCTIONS ==========
   
   async getFollowStatus(userId, currentUserId) {
     try {
@@ -164,7 +149,6 @@ class ChatService {
       return { success: true, data: response.data };
       
     } catch (error) {
-      console.error('❌ Get follow status error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
@@ -206,7 +190,6 @@ class ChatService {
       return { success: true, data: response.data };
       
     } catch (error) {
-      console.error('❌ Toggle follow error:', error.response?.status, error.response?.data);
       
       if (error.response?.status === 400) {
         const errorMsg = error.response.data?.message;
@@ -235,8 +218,6 @@ class ChatService {
       };
     }
   }
-
-  // ========== PRIVATE CHAT FUNCTIONS ==========
 
   async getOrCreatePrivateChat(otherUserId) {
     try {
@@ -282,7 +263,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Get/Create private chat error:', error.response?.status, error.response?.data);
       
       if (error.response?.status === 400) {
         const errorMsg = error.response.data?.message;
@@ -323,7 +303,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Fetch my chats error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
@@ -346,7 +325,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Fetch chat messages error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
@@ -376,7 +354,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Send message error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
@@ -396,7 +373,6 @@ class ChatService {
       return { success: true };
 
     } catch (error) {
-      console.error('❌ Mark as read error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
@@ -423,7 +399,6 @@ class ChatService {
       return { success: true, count: response.data.count };
 
     } catch (error) {
-      console.error('❌ Get unread count error:', error);
       return { success: false, count: 0 };
     }
   }
@@ -443,15 +418,12 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Search users error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || error.message 
       };
     }
   }
-
-  // ========== GROUP CHAT FUNCTIONS ==========
 
   async createGroupChat(name, description, participantIds) {
     try {
@@ -480,7 +452,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Create group chat error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to create group chat' 
@@ -502,7 +473,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Fetch my group chats error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to fetch group chats' 
@@ -524,7 +494,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Fetch group chat error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to fetch group chat' 
@@ -547,7 +516,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Fetch group chat messages error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to fetch messages' 
@@ -577,7 +545,6 @@ class ChatService {
       return { success: true, data: response.data };
 
     } catch (error) {
-      console.error('❌ Send group message error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to send message' 
@@ -597,7 +564,6 @@ class ChatService {
       return { success: true };
 
     } catch (error) {
-      console.error('❌ Mark group chat as read error:', error.response?.status, error.response?.data);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to mark as read' 
@@ -644,7 +610,6 @@ class ChatService {
       return { success: true, data: allChats };
 
     } catch (error) {
-      console.error('❌ Fetch all chats error:', error);
       return { 
         success: false, 
         message: 'Failed to fetch chats' 
@@ -666,7 +631,6 @@ class ChatService {
         };
       }
     } catch (error) {
-      console.error('❌ Get unread chats count error:', error);
       return { success: false, count: 0 };
     }
   }
@@ -675,7 +639,6 @@ class ChatService {
     try {
       console.log('🔍 Getting available users for group chat:', chatId);
       
-      // קודם קבל את הקבוצה כדי לראות מי כבר בה
       const groupResult = await this.getGroupChat(chatId);
       let existingParticipants = [];
       
@@ -684,7 +647,6 @@ class ChatService {
         console.log('👥 Existing participants:', existingParticipants.length);
       }
       
-      // קבל את כל הצ'אטים הפרטיים
       const chatsResult = await this.getMyChats();
       
       if (!chatsResult.success || !chatsResult.data || chatsResult.data.length === 0) {
@@ -698,7 +660,6 @@ class ChatService {
       
       const currentUserId = this.getCurrentUserId();
       
-      // עבד את הנתונים ופלטר משתמשים קיימים
       const availableUsers = [];
       
       chatsResult.data.forEach((chat) => {
@@ -720,7 +681,6 @@ class ChatService {
         }
       });
       
-      // הסר כפילויות
       const uniqueUsers = availableUsers.filter((user, index, self) => 
         index === self.findIndex(u => u.userId === user.userId)
       );
@@ -729,7 +689,6 @@ class ChatService {
       return { success: true, data: uniqueUsers };
 
     } catch (error) {
-      console.error('❌ Get available users for group error:', error);
       return { 
         success: false, 
         message: 'Failed to get available users',
@@ -737,8 +696,6 @@ class ChatService {
       };
     }
   }
-
-  // ✅ פונקציות עדכון קבוצה - תיקון עם ID נכון
 
   async updateGroupChat(chatId, updateData) {
     try {
@@ -754,7 +711,6 @@ class ChatService {
         };
       }
       
-      // רשום מה משתנה (בלי לחשוף תוכן רגיש)
       const changes = [];
       if (updateData.name) changes.push('name');
       if (updateData.description !== undefined) changes.push('description');
@@ -773,9 +729,7 @@ class ChatService {
       return { success: true, data: response.data };
       
     } catch (error) {
-      console.error('❌ Update group chat error:', error.response?.status, error.response?.data);
       
-      // טיפול בשגיאות ספציפיות
       if (error.response?.status === 403) {
         const errorMsg = error.response.data?.message;
         if (errorMsg?.includes('Only admin can change')) {
@@ -815,7 +769,6 @@ class ChatService {
       return result;
       
     } catch (error) {
-      console.error('❌ Update group chat image error:', error);
       return { 
         success: false, 
         message: 'Failed to update group chat image' 
@@ -837,7 +790,6 @@ class ChatService {
       return result;
       
     } catch (error) {
-      console.error('❌ Update group chat settings error:', error);
       return { 
         success: false, 
         message: 'Failed to update group chat settings' 
@@ -855,7 +807,6 @@ class ChatService {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Remove participant error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to remove participant' 
@@ -875,7 +826,6 @@ class ChatService {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Add participants error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to add participants' 
@@ -893,7 +843,6 @@ class ChatService {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Leave group chat error:', error);
       return { 
         success: false, 
         message: error.response?.data?.message || 'Failed to leave group chat' 
@@ -901,7 +850,6 @@ class ChatService {
     }
   }
 
-  // Helper Functions
   formatMessageTime(dateString) {
     const date = new Date(dateString);
     const now = new Date();

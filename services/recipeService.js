@@ -31,12 +31,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      url: error.config?.url
-    });
     return Promise.reject(error);
   }
 );
@@ -49,7 +43,6 @@ export const recipeService = {
       console.log('✅ Server connection successful');
       return { success: true };
     } catch (error) {
-      console.error('❌ Server connection failed:', error);
       return { success: false, error: error.message };
     }
   },
@@ -62,7 +55,6 @@ export const recipeService = {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Get feed error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to fetch feed'
@@ -78,7 +70,6 @@ export const recipeService = {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Get user groups posts error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to fetch groups posts'
@@ -94,7 +85,6 @@ export const recipeService = {
       
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Get following posts error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to fetch following posts'
@@ -180,15 +170,12 @@ export const recipeService = {
       }
 
     } catch (error) {
-      console.error('❌ Upload error:', error);
       
       let errorMessage = 'Failed to create recipe';
       
       if (error.response) {
-        console.error('Server error response:', error.response.data);
         errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
       } else if (error.request) {
-        console.error('No response from server');
         errorMessage = 'No response from server. Check your connection.';
       } else if (error.code === 'ECONNABORTED') {
         errorMessage = 'Upload took too long. Please try again.';
@@ -218,7 +205,6 @@ export const recipeService = {
         return { success: true, data: response.data };
       }
     } catch (error) {
-      console.error('❌ Get recipes error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to fetch recipes'
@@ -285,15 +271,12 @@ export const recipeService = {
       };
 
     } catch (error) {
-      console.error('❌ Update recipe error:', error);
       
       let errorMessage = 'Failed to update recipe';
       
       if (error.response) {
-        console.error('Server error response:', error.response.data);
         errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
       } else if (error.request) {
-        console.error('No response from server');
         errorMessage = 'No response from server. Check your connection.';
       } else if (error.code === 'ECONNABORTED') {
         errorMessage = 'Update took too long. Please try again.';
@@ -314,9 +297,7 @@ export const recipeService = {
     console.log('🗑️ Deleting recipe from server:', recipeId);
     console.log('📝 Post data:', postData);
     
-    // ✅ בדוק אם זה פוסט של קבוצה
     if (postData && postData.groupId) {
-      // פוסט של קבוצה - השתמש ב-groupService
       console.log('🏢 Deleting group post via groupService...');
       
       const result = await groupService.deleteGroupPost(
@@ -329,7 +310,6 @@ export const recipeService = {
         console.log('✅ Group post deleted successfully');
         return { success: true };
       } else {
-        console.error('❌ Group post deletion failed:', result.message);
         return {
           success: false,
           message: result.message || 'Failed to delete group post'
@@ -337,7 +317,6 @@ export const recipeService = {
       }
     }
     
-    // ✅ בדוק אם יש מידע על קבוצה ב-URL או במידע
     if (postData && (postData.isGroupPost || postData.group)) {
       const groupId = postData.group?._id || postData.group?.id || postData.groupId;
       
@@ -350,21 +329,17 @@ export const recipeService = {
           return { success: true };
         } catch (groupError) {
           console.warn('⚠️ Group endpoint failed, trying regular endpoint...', groupError.message);
-          // נסה את הendpoint הרגיל כ-fallback
         }
       }
     }
     
-    // ✅ פוסט רגיל או fallback
     console.log('📝 Deleting regular post...');
     await api.delete(`/recipes/${recipeId}`);
     console.log('✅ Regular post deleted successfully');
     return { success: true };
     
   } catch (error) {
-    console.error('❌ Delete recipe error:', error);
     
-    // ✅ טיפול ספציפי בשגיאות
     if (error.response) {
       const status = error.response.status;
       const errorMessage = error.response.data?.message || '';
@@ -396,12 +371,10 @@ export const recipeService = {
   }
 },
 
-// ✅ פונקציה חדשה - זיהוי אוטומטי של סוג הפוסט
   deletePost: async (postId, postData) => {
     try {
       console.log('🗑️ Auto-detecting post type for deletion:', postId);
       
-      // בדוק אם זה פוסט של קבוצה
       const isGroupPost = postData && (
         postData.groupId || 
         postData.group || 
@@ -422,18 +395,15 @@ export const recipeService = {
           };
         }
         
-        // השתמש ב-groupService
         const result = await groupService.deleteGroupPost(groupId, postId, userId);
         return result;
       } else {
         console.log('📝 Identified as regular post');
-        // השתמש בAPI רגיל
         await api.delete(`/recipes/${postId}`);
         return { success: true };
       }
       
     } catch (error) {
-      console.error('❌ Delete post error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to delete post'
@@ -445,13 +415,11 @@ export const recipeService = {
     try {
       console.log('👍 Liking recipe on server:', recipeId, 'by user:', userId);
       const response = await api.post(`/recipes/${recipeId}/like`, {
-        userId: userId // הוסף את ה-userId לגוף הבקשה
+        userId: userId 
       });
       console.log('✅ Like response:', response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Like recipe error:', error);
-      console.error('❌ Error response:', error.response?.data);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to like recipe'
@@ -463,13 +431,11 @@ export const recipeService = {
     try {
       console.log('👎 Unliking recipe on server:', recipeId, 'by user:', userId);
       const response = await api.delete(`/recipes/${recipeId}/like`, {
-        data: { userId: userId } // הוסף את ה-userId לגוף הבקשה
+        data: { userId: userId } 
       });
       console.log('✅ Unlike response:', response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('❌ Unlike recipe error:', error);
-      console.error('❌ Error response:', error.response?.data);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to unlike recipe'
@@ -492,7 +458,6 @@ export const recipeService = {
         data: response.data.data || response.data 
       };
     } catch (error) {
-      console.error('❌ Add comment error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to add comment'
@@ -506,7 +471,6 @@ export const recipeService = {
       await api.delete(`/recipes/${recipeId}/comments/${commentId}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ Delete comment error:', error);
       return {
         success: false,
         message: error.response?.data?.message || error.message || 'Failed to delete comment'

@@ -13,7 +13,6 @@ import {
   SafeAreaView
 } from 'react-native';
 
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',
@@ -27,7 +26,6 @@ const FLAVORWORLD_COLORS = {
   danger: '#E74C3C',
 };
 
-// פתרון פשוט - תחליף לאיקונים ללא ספריות חיצוניות
 const SimpleIcon = ({ type, size = 24, color = FLAVORWORLD_COLORS.text }) => {
   const icons = {
     close: '✕',
@@ -60,11 +58,6 @@ const SharePostComponent = ({
   useEffect(() => {
     const fetchFriends = async () => {
       setTimeout(() => {
-        // TODO: בהמשך הפרויקט - לטעון חברים אמיתיים מהשרת
-        // const response = await api.get(`/users/${currentUserId}/friends`);
-        // const realFriends = response.data;
-        
-        // כרגע רשימה ריקה כי אין חברים במשתמש
         const realFriends = [];
         
         setFriends(realFriends);
@@ -123,9 +116,6 @@ const SharePostComponent = ({
       sharedAt: new Date().toISOString(),
       sharedBy: currentUserId
     };
-
-    // TODO: בהמשך הפרויקט - לשלוח לשרת
-    // await api.post('/share-post', shareData);
 
     if (onShare) {
       onShare(shareData);
@@ -207,7 +197,7 @@ const SharePostComponent = ({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
-        {/* Header */}
+        {/**/}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <SimpleIcon type="close" size={24} color={FLAVORWORLD_COLORS.accent} />
@@ -228,10 +218,10 @@ const SharePostComponent = ({
           </TouchableOpacity>
         </View>
 
-        {/* Post Preview */}
+        {/**/}
         {renderPostPreview()}
 
-        {/* Share Message */}
+        {/**/}
         <View style={styles.messageContainer}>
           <TextInput
             style={styles.messageInput}
@@ -244,7 +234,7 @@ const SharePostComponent = ({
           />
         </View>
 
-        {/* Friends Selection */}
+        {/**/}
         <View style={styles.friendsContainer}>
           <View style={styles.friendsHeader}>
             <Text style={styles.sectionTitle}>Share with Friends</Text>
@@ -257,7 +247,7 @@ const SharePostComponent = ({
             </TouchableOpacity>
           </View>
 
-          {/* Search Bar */}
+          {/**/}
           <View style={styles.searchContainer}>
             <SimpleIcon type="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
             <TextInput
@@ -269,7 +259,7 @@ const SharePostComponent = ({
             />
           </View>
 
-          {/* Friends List */}
+          {/**/}
           {loading ? (
             <ActivityIndicator size="large" color={FLAVORWORLD_COLORS.primary} style={styles.loader} />
           ) : (
@@ -293,7 +283,7 @@ const SharePostComponent = ({
           )}
         </View>
 
-        {/* Selection Counter */}
+        {/**/}
         {selectedFriends.length > 0 && (
           <View style={styles.selectionCounter}>
             <Text style={styles.counterText}>

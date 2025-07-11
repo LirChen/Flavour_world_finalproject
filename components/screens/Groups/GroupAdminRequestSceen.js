@@ -1,4 +1,3 @@
-// components/screens/groups/GroupAdminRequestsScreen.js
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -36,7 +35,6 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
   const { currentUser } = useAuth();
   const { groupId, groupName } = route.params;
   
-  // State
   const [group, setGroup] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,12 +49,10 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       
-      // טען פרטי הקבוצה
       const groupResult = await groupService.getGroup(groupId);
       if (groupResult.success) {
         setGroup(groupResult.data);
         
-        // וודא שהמשתמש הנוכחי הוא אדמין או יוצר
         const isAdmin = groupService.isAdmin(groupResult.data, currentUser?.id || currentUser?._id);
         const isCreator = groupService.isCreator(groupResult.data, currentUser?.id || currentUser?._id);
         
@@ -68,7 +64,6 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
           return;
         }
         
-        // ✅ טען בקשות ממתינות עם פרטים מלאים
         const requestsWithDetails = groupResult.data.pendingRequestsDetails || [];
         
         console.log('📋 Pending requests loaded:', {
@@ -103,7 +98,7 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
     const requestId = request.userId || request._id || request.id;
     
     if (processingRequests.has(requestId)) {
-      return; // כבר מעבד את הבקשה הזאת
+      return; 
     }
 
     setProcessingRequests(prev => new Set([...prev, requestId]));
@@ -117,7 +112,6 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
       );
       
       if (result.success) {
-        // הסר את הבקשה מהרשימה
         setPendingRequests(prev => 
           prev.filter(req => {
             const reqId = req.userId || req._id || req.id;
@@ -234,7 +228,7 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -257,7 +251,7 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* Summary Card */}
+      {/**/}
       {pendingRequests.length > 0 && (
         <View style={styles.summaryCard}>
           <View style={styles.summaryIcon}>
@@ -274,7 +268,7 @@ const GroupAdminRequestsScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* Requests List */}
+      {/**/}
       <FlatList
         data={pendingRequests}
         keyExtractor={(item) => item.userId || item._id || item.id || Math.random().toString()}

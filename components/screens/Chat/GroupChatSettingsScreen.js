@@ -1,4 +1,3 @@
-// components/screens/chat/GroupChatSettingsScreen.js - תיקון מלא
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -43,11 +42,10 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
   const [updating, setUpdating] = useState(false);
   const [leaving, setLeaving] = useState(false);
   
-  // States for pending changes
   const [pendingChanges, setPendingChanges] = useState({
     name: groupChat?.name || '',
     description: groupChat?.description || '',
-    image: null, // זה יהיה null אלא אם כן נבחרה תמונה חדשה
+    image: null, 
     allowNameChange: groupChat?.settings?.allowNameChange !== false,
     allowImageChange: groupChat?.settings?.allowImageChange !== false,
     allowMemberInvites: groupChat?.settings?.allowMemberInvites === true,
@@ -55,7 +53,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
   
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  // Modal states
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [selectedNewMembers, setSelectedNewMembers] = useState([]);
@@ -68,7 +65,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
-    // בדוק אם יש שינויים לא שמורים
     const hasChanges = 
       pendingChanges.name !== (chatInfo?.name || '') ||
       pendingChanges.description !== (chatInfo?.description || '') ||
@@ -86,7 +82,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
       const result = await chatService.getGroupChat(chatId);
       if (result.success) {
         setChatInfo(result.data);
-        // עדכן את השינויים הממתינים עם הנתונים החדשים
         setPendingChanges({
           name: result.data.name,
           description: result.data.description || '',
@@ -103,7 +98,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
     }
   };
 
-  // פונקציות לעדכון השינויים הממתינים
   const updatePendingChange = (field, value) => {
     setPendingChanges(prev => ({
       ...prev,
@@ -111,7 +105,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
     }));
   };
 
-  // Image handling functions
   const handleImagePick = async (source) => {
     try {
       let result;
@@ -145,7 +138,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
       }
 
       if (!result.canceled && result.assets[0]) {
-        // המרה ל-base64
         const response = await fetch(result.assets[0].uri);
         const blob = await response.blob();
         const reader = new FileReader();
@@ -195,7 +187,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
     );
   };
 
-  // שמירת כל השינויים
   const handleSaveChanges = async () => {
     if (!hasUnsavedChanges) {
       Alert.alert('No Changes', 'No changes to save');
@@ -210,10 +201,8 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
     try {
       setUpdating(true);
       
-      // בנה את אובייקט העדכון
       const updateData = {};
       
-      // שם וטיאור
       if (pendingChanges.name !== chatInfo.name) {
         updateData.name = pendingChanges.name.trim();
       }
@@ -222,12 +211,10 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
         updateData.description = pendingChanges.description;
       }
       
-      // תמונה
       if (pendingChanges.image !== null) {
         updateData.image = pendingChanges.image;
       }
       
-      // הגדרות (רק אדמין)
       if (isAdmin) {
         if (pendingChanges.allowNameChange !== (chatInfo.settings?.allowNameChange !== false)) {
           updateData.allowNameChange = pendingChanges.allowNameChange;
@@ -247,7 +234,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
       const result = await chatService.updateGroupChat(chatId, updateData);
 
       if (result.success) {
-        // עדכן את המידע המקומי
         setChatInfo(prev => ({
           ...prev,
           name: pendingChanges.name.trim(),
@@ -261,10 +247,9 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
           }
         }));
         
-        // איפוס השינויים הממתינים
         setPendingChanges(prev => ({
           ...prev,
-          image: null // איפוס התמונה הממתינה
+          image: null 
         }));
         
         Alert.alert('Success', 'Group settings saved successfully!');
@@ -279,7 +264,6 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
     }
   };
 
-  // ביטול שינויים
   const handleCancelChanges = () => {
     Alert.alert(
       'Discard Changes',
@@ -603,7 +587,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* הודעה על שינויים לא שמורים */}
+        {/**/}
         {hasUnsavedChanges && (
           <View style={styles.unsavedChangesNotice}>
             <Ionicons name="warning" size={16} color={FLAVORWORLD_COLORS.primary} />
@@ -614,7 +598,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Group Information</Text>
           
-          {/* Group Avatar Section */}
+          {/**/}
           <View style={styles.groupAvatarSection}>
             <View style={styles.groupAvatarContainer}>
               {pendingChanges.image ? (
@@ -659,7 +643,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          {/* Group Name */}
+          {/**/}
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Group Name</Text>
             <TextInput
@@ -676,7 +660,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
             />
           </View>
 
-          {/* Group Description */}
+          {/**/}
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Description</Text>
             <TextInput
@@ -697,7 +681,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Members Section */}
+        {/**/}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
@@ -723,7 +707,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
           />
         </View>
 
-        {/* Group Permissions Section - Only for Admin */}
+        {/**/}
         {isAdmin && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Group Permissions</Text>
@@ -775,7 +759,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Actions Section */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actions</Text>
           
@@ -796,7 +780,7 @@ const GroupChatSettingsScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Add Members Modal */}
+      {/**/}
       <Modal
         visible={showAddMembersModal}
         animationType="slide"

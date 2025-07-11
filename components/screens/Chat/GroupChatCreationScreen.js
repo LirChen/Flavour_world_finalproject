@@ -1,4 +1,3 @@
-// components/screens/chat/GroupChatCreationScreen.js - תיקון
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -48,7 +47,6 @@ const GroupChatCreationScreen = ({ navigation }) => {
   const loadAvailableUsers = async () => {
     try {
       setLoading(true);
-      // ✅ תיקון: השתמש בפונקציה חדשה שלא מצריכה chatId
       const result = await getAvailableUsersForCreation();
       
       if (result.success) {
@@ -64,12 +62,10 @@ const GroupChatCreationScreen = ({ navigation }) => {
     }
   };
 
-  // ✅ פונקציה חדשה לקבלת משתמשים זמינים ליצירת קבוצה
   const getAvailableUsersForCreation = async () => {
     try {
       console.log('🔍 Getting available users for new group creation');
       
-      // קבל את כל הצ'אטים הפרטיים
       const chatsResult = await chatService.getMyChats();
       
       if (!chatsResult.success || !chatsResult.data || chatsResult.data.length === 0) {
@@ -81,11 +77,9 @@ const GroupChatCreationScreen = ({ navigation }) => {
         };
       }
       
-      // ✅ תיקון: קבל את ה-ID הנכון של המשתמש הנוכחי
       const getCurrentUserId = () => {
         if (!currentUser) return null;
         
-        // נסה כל האפשרויות
         return currentUser._id || currentUser.id || currentUser.userId || null;
       };
       
@@ -100,7 +94,6 @@ const GroupChatCreationScreen = ({ navigation }) => {
         };
       }
       
-      // עבד את הנתונים
       const availableUsers = [];
       
       chatsResult.data.forEach((chat) => {
@@ -119,7 +112,6 @@ const GroupChatCreationScreen = ({ navigation }) => {
         }
       });
       
-      // הסר כפילויות
       const uniqueUsers = availableUsers.filter((user, index, self) => 
         index === self.findIndex(u => u.userId === user.userId)
       );
@@ -163,7 +155,6 @@ const GroupChatCreationScreen = ({ navigation }) => {
     setCreating(true);
 
     try {
-      // ✅ תיקון: וודא שאנחנו מעבירים רק IDs
       const participantIds = selectedUsers.map(user => user.userId);
       
       console.log('🔄 Creating group with participants:', participantIds);
@@ -183,7 +174,6 @@ const GroupChatCreationScreen = ({ navigation }) => {
             {
               text: 'OK',
               onPress: () => {
-                // נווט לצ'אט החדש
                 navigation.navigate('GroupChatConversation', {
                   chatId: result.data._id,
                   groupChat: result.data,
@@ -304,7 +294,7 @@ const GroupChatCreationScreen = ({ navigation }) => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
+        {/**/}
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton} 
@@ -329,7 +319,7 @@ const GroupChatCreationScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Group Info */}
+        {/**/}
         <View style={styles.groupInfoSection}>
           <Text style={styles.sectionTitle}>Group Information</Text>
           
@@ -360,7 +350,7 @@ const GroupChatCreationScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Selected Users */}
+        {/**/}
         {selectedUsers.length > 0 && (
           <View style={styles.selectedUsersSection}>
             <Text style={styles.sectionTitle}>
@@ -377,11 +367,11 @@ const GroupChatCreationScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Available Users */}
+        {/**/}
         <View style={styles.usersSection}>
           <Text style={styles.sectionTitle}>Available Users</Text>
           
-          {/* Search */}
+          {/**/}
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
             <TextInput
@@ -398,7 +388,7 @@ const GroupChatCreationScreen = ({ navigation }) => {
             )}
           </View>
 
-          {/* Users List */}
+          {/**/}
           <FlatList
             data={filteredUsers}
             renderItem={renderUserItem}

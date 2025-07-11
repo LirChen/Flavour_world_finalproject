@@ -1,4 +1,3 @@
-// services/AuthContext.js
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,7 +11,6 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    // בדיקת סטטוס התחברות בעת טעינת האפליקציה
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
@@ -81,7 +79,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🆕 פונקציה לעדכון פרטי המשתמש
   const updateUserProfile = async (updatedData) => {
     try {
       if (!currentUser) {

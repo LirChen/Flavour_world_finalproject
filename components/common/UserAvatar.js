@@ -1,4 +1,3 @@
-// components/common/UserAvatar.js
 
 import React, { useState } from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
@@ -49,7 +48,6 @@ const UserAvatar = ({
         />
       );
     } else {
-      // תמונת ברירת מחדל מעוצבת כמו שרצית
       return (
         <View style={[
           styles.defaultAvatar,

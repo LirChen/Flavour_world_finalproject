@@ -1,4 +1,3 @@
-// components/screens/chat/UserSearchScreen.js
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -41,7 +40,6 @@ const UserSearchScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (searchQuery.trim().length >= 2) {
-      // Debounce search
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
@@ -85,7 +83,6 @@ const UserSearchScreen = ({ route, navigation }) => {
     if (purpose === 'chat') {
       await startPrivateChat(user);
     } else {
-      // For other purposes (like following), just go back with the user
       navigation.navigate(route.params.returnScreen || 'ChatList', { selectedUser: user });
     }
   };
@@ -94,11 +91,9 @@ const UserSearchScreen = ({ route, navigation }) => {
     try {
       setCreating(true);
       
-      // Create or get existing private chat
       const result = await chatService.getOrCreatePrivateChat(user.userId);
       
       if (result.success) {
-        // Navigate to the chat conversation
         const otherUser = {
           userId: user.userId,
           userName: user.userName,
@@ -184,7 +179,7 @@ const UserSearchScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -196,7 +191,7 @@ const UserSearchScreen = ({ route, navigation }) => {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Search Bar */}
+      {/**/}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
@@ -216,7 +211,7 @@ const UserSearchScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* Results */}
+      {/**/}
       <View style={styles.content}>
         {loading && (
           <View style={styles.loadingContainer}>
@@ -235,7 +230,7 @@ const UserSearchScreen = ({ route, navigation }) => {
         />
       </View>
 
-      {/* Creating Chat Overlay */}
+      {/**/}
       {creating && (
         <View style={styles.creatingOverlay}>
           <View style={styles.creatingModal}>

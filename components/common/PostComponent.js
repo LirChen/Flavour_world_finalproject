@@ -22,8 +22,6 @@ import { useAuth } from '../../services/AuthContext';
 import UserAvatar from './UserAvatar';
 import { notificationService } from '../../services/NotificationService';
 
-
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',
@@ -52,11 +50,9 @@ const PostComponent = ({
   const safePost = post || {};
   const { currentUser, isLoading } = useAuth();
   
-  // State מקומי ללייקים ותגובות
   const [localLikes, setLocalLikes] = useState(safePost.likes || []);
   const [localComments, setLocalComments] = useState(safePost.comments || []);
   
-  // State אחר
   const [showComments, setShowComments] = useState(false);
   const [showFullRecipe, setShowFullRecipe] = useState(false);
   const [showOptionsModal, setShowOptionsModal] = useState(false);
@@ -64,13 +60,11 @@ const PostComponent = ({
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isSubmittingLike, setIsSubmittingLike] = useState(false);
 
-  // עדכון ה-state המקומי כשהפוסט משתנה
   useEffect(() => {
     setLocalLikes(safePost.likes || []);
     setLocalComments(safePost.comments || []);
   }, [safePost.likes, safePost.comments]);
 
-  // אם עדיין טוען - הראה spinner
   if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', minHeight: 100 }]}>
@@ -80,17 +74,13 @@ const PostComponent = ({
     );
   }
 
-  // חישוב נתונים עם ה-state המקומי
   const likesCount = localLikes.length;
   const comments = localComments;
   
-  // מטפל בכל סוגי ה-ID האפשריים
   const currentUserId = currentUser?.id || currentUser?._id || currentUser?.userId;
   
-  // מטפל בכל סוגי שמות המשתמש האפשריים
   const currentUserName = currentUser?.fullName || currentUser?.name || currentUser?.displayName || currentUser?.username || 'Anonymous';
   
-  // בדיקת לייק עם ה-state המקומי
   const isLiked = currentUserId ? localLikes.some(likeUserId => 
     likeUserId === currentUserId || 
     likeUserId === currentUser?.id || 
@@ -99,7 +89,6 @@ const PostComponent = ({
   
   const postId = safePost._id || safePost.id;
 
-  // 🆕 זיהוי אם זה פוסט קבוצה
   const isActualGroupPost = (isGroupPost && groupId) || safePost.groupId || safePost.postSource === 'group';
   const effectiveGroupId = groupId || safePost.groupId;
 
@@ -142,15 +131,12 @@ const PostComponent = ({
     }
   };
   const refreshNotificationsIfNeeded = useCallback(async (targetUserId) => {
-  // רק אם מישהו אחר עשה לייק/תגובה לפוסט שלי
   const currentUserId = currentUser?.id || currentUser?._id;
   if (targetUserId && targetUserId !== currentUserId) {
-    // לא נרענן כאן - נתן לשרת לטפל בזה
     console.log('📬 Action may trigger notification for user:', targetUserId);
   }
 }, [currentUser]);
 
- // 🔧 תיקון פונקציית הלייק
 const handleLike = async () => {
   if (!postId) {
     console.error('❌ No postId available');
@@ -178,7 +164,6 @@ const handleLike = async () => {
   });
   setIsSubmittingLike(true);
 
-  // עדכון אופטימיסטי - עדכן מיידית לפני השרת
   const newLikes = isLiked 
     ? localLikes.filter(id => id !== currentUserId && id !== currentUser?.id && id !== currentUser?._id)
     : [...localLikes, currentUserId];
@@ -190,7 +175,6 @@ const handleLike = async () => {
     let result;
     
     if (isActualGroupPost && effectiveGroupId) {
-      // פוסט של קבוצה - נשתמש ב-groupService
       console.log('🏠 Using group service for like/unlike...');
       if (isLiked) {
         console.log('👎 Unliking group post...');
@@ -198,13 +182,11 @@ const handleLike = async () => {
       } else {
         console.log('👍 Liking group post...');
         result = await groupService.likeGroupPost(effectiveGroupId, postId, currentUserId);
-        // 🆕 רענון התראות אם זה לייק חדש
         if (!isLiked) {
           await refreshNotificationsIfNeeded(safePost.userId);
         }
       }
     } else {
-      // פוסט רגיל - נשתמש ב-recipeService
       console.log('🍳 Using recipe service for like/unlike...');
       if (isLiked) {
         console.log('👎 Unliking recipe...');
@@ -212,7 +194,6 @@ const handleLike = async () => {
       } else {
         console.log('👍 Liking recipe...');
         result = await recipeService.likeRecipe(postId, currentUserId);
-        // 🆕 רענון התראות אם זה לייק חדש
         if (!isLiked) {
           await refreshNotificationsIfNeeded(safePost.userId);
         }
@@ -222,25 +203,21 @@ const handleLike = async () => {
     console.log('📊 Like result:', result);
 
     if (result.success) {
-      // עדכן מהשרת אחרי הצלחה
       if (result.data && result.data.likes) {
         setLocalLikes(result.data.likes);
         console.log('✅ Updated likes from server:', result.data.likes);
       }
       
-      // רענן גם את הנתונים הכלליים
       setTimeout(() => {
         if (onRefreshData) {
           onRefreshData();
         }
       }, 500);
     } else {
-      // במקרה של שגיאה, החזר את המצב הקודם
       setLocalLikes(safePost.likes || []);
       Alert.alert('Error', result.message || 'Failed to update like');
     }
   } catch (error) {
-    // במקרה של שגיאה, החזר את המצב הקודם
     setLocalLikes(safePost.likes || []);
     console.error('❌ Like error:', error);
     Alert.alert('Error', 'Failed to update like status');
@@ -249,7 +226,6 @@ const handleLike = async () => {
   }
 };
 
-  // 🔧 תיקון פונקציית התגובות   
 const handleAddComment = async () => {
   if (!newComment.trim()) {
     Alert.alert('Empty Comment', 'Please write something delicious!');
@@ -278,7 +254,6 @@ const handleAddComment = async () => {
     let result;
     
     if (isActualGroupPost && effectiveGroupId) {
-      // תגובה לפוסט של קבוצה
       console.log('🏠 Adding comment to group post...');
       result = await groupService.addCommentToGroupPost(effectiveGroupId, postId, {
         text: newComment.trim(),
@@ -287,7 +262,6 @@ const handleAddComment = async () => {
         userAvatar: currentUser?.avatar || currentUser?.userAvatar
       });
     } else {
-      // תגובה לפוסט רגיל
       console.log('🍳 Adding comment to regular post...');
       result = await recipeService.addComment(postId, {
         text: newComment.trim(),
@@ -300,12 +274,10 @@ const handleAddComment = async () => {
     if (result.success) {
       setNewComment('');
       
-      // עדכון מיידי של התגובות
       if (result.data && result.data.comments) {
         setLocalComments(result.data.comments);
       }
       
-      // 🆕 רענון התראות
       await refreshNotificationsIfNeeded(safePost.userId);
       
       if (onRefreshData) {
@@ -322,23 +294,19 @@ const handleAddComment = async () => {
   }
 };
 
-  // 🔧 תיקון פונקציית מחיקת תגובות
   const handleDeleteComment = async (commentId) => {
     try {
       let result;
       
       if (isActualGroupPost && effectiveGroupId) {
-        // מחיקת תגובה מפוסט של קבוצה
         console.log('🏠 Deleting comment from group post...');
         result = await groupService.deleteCommentFromGroupPost(effectiveGroupId, postId, commentId, currentUserId);
       } else {
-        // מחיקת תגובה מפוסט רגיל
         console.log('🍳 Deleting comment from regular post...');
         result = await recipeService.deleteComment(postId, commentId);
       }
       
       if (result.success) {
-        // עדכון מיידי של התגובות
         setLocalComments(prev => prev.filter(comment => comment._id !== commentId));
         
         if (onRefreshData) {
@@ -353,11 +321,9 @@ const handleAddComment = async () => {
     }
   };
 
-  // הוסף פונקציה לעריכת פוסט
   const handleEdit = () => {
     setShowOptionsModal(false);
     
-    // נווט למסך עריכת פוסט עם הנתונים הקיימים
     if (navigation) {
       navigation.navigate('EditPost', { 
         postId: postId,
@@ -386,7 +352,6 @@ const handleAddComment = async () => {
       return;
     }
 
-    // בדיקת בעלות מתקדמת יותר
     const postOwnerId = safePost.userId || safePost.user?.id || safePost.user?._id;
     if (postOwnerId !== currentUserId && postOwnerId !== currentUser?.id && postOwnerId !== currentUser?._id) {
       Alert.alert('Permission Denied', 'You can only delete your own recipes');
@@ -455,7 +420,6 @@ const handleAddComment = async () => {
     </View>
   );
 
-  // Options Modal
   const renderOptionsModal = () => {
     const isOwner = currentUserId && (
       safePost.userId === currentUserId || 
@@ -630,7 +594,7 @@ const handleAddComment = async () => {
 
   return (
     <View style={styles.container}>
-      {/* Post Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.userInfo}
@@ -660,7 +624,7 @@ const handleAddComment = async () => {
         </TouchableOpacity>
       </View>
 
-      {/* Recipe Content */}
+      {/**/}
       <TouchableOpacity onPress={() => setShowFullRecipe(true)}>
         <Text style={styles.recipeTitle}>
           {safePost.title || 'Untitled Recipe'}
@@ -697,7 +661,7 @@ const handleAddComment = async () => {
         )}
       </TouchableOpacity>
 
-      {/* Action Buttons */}
+      {/**/}
       <View style={styles.actions}>
         <TouchableOpacity 
           style={[styles.actionButton, isSubmittingLike && styles.actionButtonDisabled]} 

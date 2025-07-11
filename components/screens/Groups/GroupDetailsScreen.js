@@ -1,4 +1,3 @@
-// components/screens/groups/GroupDetailsScreen.js
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -45,7 +44,6 @@ const GroupDetailsScreen = ({ route, navigation }) => {
   const { currentUser } = useAuth();
   const { groupId } = route.params;
   
-  // State
   const [group, setGroup] = useState(null);
   const [groupPosts, setGroupPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +52,6 @@ const GroupDetailsScreen = ({ route, navigation }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState(null);
 
-  // נתונים נגזרים
   const isMember = group ? groupService.isMember(group, currentUser?.id || currentUser?._id) : false;
   const isAdmin = group ? groupService.isAdmin(group, currentUser?.id || currentUser?._id) : false;
   const isCreator = group ? groupService.isCreator(group, currentUser?.id || currentUser?._id) : false;

@@ -1,4 +1,3 @@
-// components/common/DefaultAvatar.js
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -20,7 +19,6 @@ const DefaultAvatar = ({
   backgroundColor = '#E8E8E8',
   textColor = '#7F8C8D'
 }) => {
-  // קח את האות הראשונה של השם
   const firstLetter = name ? name.charAt(0).toUpperCase() : 'A';
   
   return (

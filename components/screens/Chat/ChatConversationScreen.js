@@ -1,4 +1,3 @@
-// components/screens/chat/ChatConversationScreen.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -62,7 +61,6 @@ const ChatConversationScreen = ({ route, navigation }) => {
   }, [chatId]);
 
   useEffect(() => {
-    // Animate attachment options
     if (showAttachments) {
       Animated.spring(attachmentSlideAnim, {
         toValue: 1,
@@ -88,10 +86,8 @@ const ChatConversationScreen = ({ route, navigation }) => {
       if (result.success) {
         setMessages(result.data || []);
         
-        // Mark messages as read
         await chatService.markAsRead(chatId);
         
-        // Scroll to bottom
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: false });
         }, 100);
@@ -119,10 +115,8 @@ const ChatConversationScreen = ({ route, navigation }) => {
       const result = await chatService.sendMessage(chatId, messageContent, messageType);
       
       if (result.success) {
-        // Add new message to list
         setMessages(prevMessages => [...prevMessages, result.data]);
         
-        // Scroll to bottom
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -214,18 +208,15 @@ const ChatConversationScreen = ({ route, navigation }) => {
   const handleInputChange = (text) => {
     setInputText(text);
     
-    // Typing indicator
     if (!isTyping) {
       setIsTyping(true);
       chatService.startTyping(chatId);
     }
     
-    // Reset timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     
-    // Stop typing after 3 seconds
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       chatService.stopTyping(chatId);
@@ -423,7 +414,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -464,7 +455,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Messages List */}
+        {/**/}
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -485,7 +476,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
           }
         />
 
-        {/* Attachment Options */}
+        {/**/}
         {showAttachments && (
           <Animated.View 
             style={[
@@ -538,7 +529,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
           </Animated.View>
         )}
 
-        {/* Selected Image Preview */}
+        {/**/}
         {selectedImage && (
           <View style={styles.selectedImageContainer}>
             <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
@@ -551,7 +542,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Input Container */}
+        {/**/}
         <View style={styles.inputContainer}>
           <View style={styles.inputRow}>
             <TouchableOpacity
@@ -597,7 +588,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Image Modal */}
+      {/**/}
       <Modal
         visible={showImageModal}
         transparent={true}

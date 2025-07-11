@@ -12,7 +12,6 @@ import {
 import { authService } from '../../../services/authService';
 import EmailInput from '../../common/EmailInput';
 
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',

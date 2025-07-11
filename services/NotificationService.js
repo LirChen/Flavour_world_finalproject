@@ -1,10 +1,8 @@
-// services/NotificationService.js - גרסה עם axios
 
 import axios from 'axios';
 
-const API_BASE_URL = 'http://192.168.1.222:3000/api'; // 🔧 החלף את זה לכתובת השרת שלך
+const API_BASE_URL = 'http://192.168.1.222:3000/api'; 
 
-// Create axios instance for notifications
 const notificationClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -15,7 +13,6 @@ const notificationClient = axios.create({
 
 class NotificationService {
   
-  // קבלת כל ההתראות של המשתמש
   async getUserNotifications(userId) {
     try {
       console.log('📬 Fetching notifications for user:', userId);
@@ -31,7 +28,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Notification fetch error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Network error - could not fetch notifications'
@@ -39,7 +35,6 @@ class NotificationService {
     }
   }
 
-  // סימון התראה כנקראה
   async markAsRead(notificationId) {
     try {
       console.log('👁️ Marking notification as read:', notificationId);
@@ -53,7 +48,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Mark as read error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Network error'
@@ -61,7 +55,6 @@ class NotificationService {
     }
   }
 
-  // סימון כל ההתראות כנקראו
   async markAllAsRead(userId) {
     try {
       console.log('👁️ Marking all notifications as read for user:', userId);
@@ -77,7 +70,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Mark all as read error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Network error'
@@ -85,7 +77,6 @@ class NotificationService {
     }
   }
 
-  // קבלת מספר התראות לא נקראו
   async getUnreadCount(userId) {
     try {
       const response = await notificationClient.get('/notifications/unread-count', {
@@ -98,7 +89,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Get unread count error:', error);
       return {
         success: false,
         count: 0
@@ -106,7 +96,6 @@ class NotificationService {
     }
   }
 
-  // 🆕 פונקציית helper לרענון התראות
   async refreshNotifications(userId, callback) {
     const result = await this.getUserNotifications(userId);
     if (result.success && callback) {
@@ -115,7 +104,6 @@ class NotificationService {
     return result;
   }
 
-  // 🆕 פונקציית helper לרענון counter
   async refreshUnreadCount(userId, callback) {
     const result = await this.getUnreadCount(userId);
     if (result.success && callback) {
@@ -124,7 +112,6 @@ class NotificationService {
     return result;
   }
 
-  // 🆕 מחיקת התראה (אופציונלי - לעתיד)
   async deleteNotification(notificationId) {
     try {
       console.log('🗑️ Deleting notification:', notificationId);
@@ -138,7 +125,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Delete notification error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Network error'
@@ -146,7 +132,6 @@ class NotificationService {
     }
   }
 
-  // 🆕 מחיקת כל ההתראות (אופציונלי - לעתיד)
   async deleteAllNotifications(userId) {
     try {
       console.log('🗑️ Deleting all notifications for user:', userId);
@@ -162,7 +147,6 @@ class NotificationService {
       };
       
     } catch (error) {
-      console.error('❌ Delete all notifications error:', error.response?.data || error.message);
       return {
         success: false,
         message: error.response?.data?.message || 'Network error'
@@ -170,12 +154,11 @@ class NotificationService {
     }
   }
 
-  // 🆕 פונקציית helper לבדיקה אם יש התראות חדשות
   async hasNewNotifications(userId, lastChecked) {
     try {
       const result = await this.getUserNotifications(userId);
       if (result.success && result.data.length > 0) {
-        const latestNotification = result.data[0]; // הראשון ברשימה (הכי חדש)
+        const latestNotification = result.data[0]; 
         const latestTime = new Date(latestNotification.createdAt);
         const lastCheckedTime = new Date(lastChecked);
         
@@ -190,7 +173,6 @@ class NotificationService {
         hasNew: false
       };
     } catch (error) {
-      console.error('❌ Check new notifications error:', error);
       return {
         success: false,
         hasNew: false
@@ -198,7 +180,6 @@ class NotificationService {
     }
   }
 
-  // 🆕 פונקציית helper לקבלת סטטיסטיקות התראות
   async getNotificationStats(userId) {
     try {
       const result = await this.getUserNotifications(userId);
@@ -208,7 +189,6 @@ class NotificationService {
         const unreadCount = notifications.filter(n => !n.read).length;
         const readCount = totalCount - unreadCount;
         
-        // סטטיסטיקות לפי סוג
         const typeStats = notifications.reduce((acc, notification) => {
           acc[notification.type] = (acc[notification.type] || 0) + 1;
           return acc;
@@ -229,7 +209,6 @@ class NotificationService {
         stats: null
       };
     } catch (error) {
-      console.error('❌ Get notification stats error:', error);
       return {
         success: false,
         stats: null

@@ -13,7 +13,6 @@ class GroupService {
     });
   }
 
-  // Create new group
   async createGroup(groupData, imageUri = null) {
     try {
       console.log('Creating group');
@@ -52,7 +51,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Create group error occurred');
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -68,7 +66,6 @@ class GroupService {
     }
   }
 
-  // Get all groups
   async getAllGroups(userId = null, includePrivateForSearch = false) {
     try {
       console.log('Fetching groups');
@@ -89,7 +86,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Fetch groups error occurred');
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -105,7 +101,6 @@ class GroupService {
     }
   }
 
-  // Search groups
   async searchGroups(query, userId = null) {
     try {
       console.log('Searching groups');
@@ -156,7 +151,6 @@ class GroupService {
       }
       
     } catch (error) {
-      console.error('Search groups error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -164,7 +158,6 @@ class GroupService {
     }
   }
 
-  // Get single group with details
   async getGroup(groupId) {
     try {
       console.log('Fetching group details');
@@ -178,7 +171,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Fetch group details error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -186,7 +178,6 @@ class GroupService {
     }
   }
 
-  // Join group
   async joinGroup(groupId, userId) {
     try {
       console.log('Joining group');
@@ -202,7 +193,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Join group error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -210,7 +200,6 @@ class GroupService {
     }
   }
 
-  // Cancel join request
   async cancelJoinRequest(groupId, userId) {
     try {
       console.log('Canceling join request');
@@ -226,7 +215,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Cancel join request error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -234,7 +222,6 @@ class GroupService {
     }
   }
 
-  // Handle join request
   async handleJoinRequest(groupId, userId, action, adminId) {
     try {
       console.log(`${action}ing join request`);
@@ -251,7 +238,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error(`${action} join request error occurred`);
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -259,7 +245,6 @@ class GroupService {
     }
   }
 
-  // Leave group
   async leaveGroup(groupId, userId) {
     try {
       console.log('Leaving group');
@@ -273,7 +258,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Leave group error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -281,7 +265,6 @@ class GroupService {
     }
   }
 
-  // 🆕 Remove member from group (admin only)
   async removeMember(groupId, memberUserId, adminUserId) {
     try {
       console.log('Removing member from group');
@@ -297,7 +280,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Remove member error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -305,7 +287,6 @@ class GroupService {
     }
   }
 
-  // Delete group
   async deleteGroup(groupId, userId) {
     try {
       console.log('Deleting group');
@@ -321,7 +302,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Delete group error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -329,7 +309,6 @@ class GroupService {
     }
   }
 
-  // Update group post
   async updateGroupPost(groupId, postId, updateData, imageUri = null) {
     try {
         console.log('Updating group post');
@@ -370,7 +349,6 @@ class GroupService {
         };
         
     } catch (error) {
-        console.error('Update group post error occurred');
         
         if (error.code === 'ECONNABORTED') {
         return {
@@ -386,7 +364,6 @@ class GroupService {
     }
   }
 
-  // Check if user is member of group
   isMember(group, userId) {
     if (!group || !group.members || !userId) {
       console.log('isMember: Missing data');
@@ -402,7 +379,6 @@ class GroupService {
     return isMember;
   }
 
-  // Check if user is admin of group
   isAdmin(group, userId) {
     if (!group || !group.members || !userId) {
       console.log('isAdmin: Missing data');
@@ -419,7 +395,6 @@ class GroupService {
     return isAdmin;
   }
 
-  // Check if user is creator of group
   isCreator(group, userId) {
     if (!group || !userId) {
       console.log('isCreator: Missing data');
@@ -433,7 +408,6 @@ class GroupService {
     return isCreator;
   }
 
-  // Check if user has pending join request
   hasPendingRequest(group, userId) {
     if (!group || !group.pendingRequests || !userId) return false;
     return group.pendingRequests.some(request => {
@@ -442,14 +416,12 @@ class GroupService {
     });
   }
 
-  // Update group settings
   async updateGroup(groupId, updateData, imageUri = null) {
     try {
       console.log('Updating group settings');
       
       const formData = new FormData();
       
-      // Add basic fields
       formData.append('name', updateData.name);
       formData.append('description', updateData.description || '');
       formData.append('category', updateData.category || 'General');
@@ -460,7 +432,6 @@ class GroupService {
       formData.append('allowInvites', updateData.allowInvites.toString());
       formData.append('updatedBy', updateData.updatedBy);
 
-      // Add image if provided
       if (imageUri) {
         formData.append('image', {
           uri: imageUri,
@@ -483,7 +454,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Update group error occurred');
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -498,10 +468,6 @@ class GroupService {
       };
     }
   }
-
-  // ============ GROUP POSTS ============
-
-  // 🔧 תיקון: Get posts for a specific group - כלול גם פוסטים שמחכים לאישור למשתמש עצמו
   async getGroupPosts(groupId, userId = null) {
     try {
       console.log('Fetching group posts');
@@ -519,7 +485,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Fetch group posts error occurred');
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -553,7 +518,6 @@ class GroupService {
     }
   }
 
-  // Create post in group
   async createGroupPost(groupId, postData, imageUri = null) {
     try {
       console.log('Creating group post');
@@ -593,7 +557,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Create group post error occurred');
       
       if (error.code === 'ECONNABORTED') {
         return {
@@ -617,7 +580,6 @@ class GroupService {
     }
   }
 
-  // Delete group post
   async deleteGroupPost(groupId, postId, userId) {
     try {
       console.log('Deleting group post');
@@ -633,7 +595,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Delete group post error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -641,9 +602,6 @@ class GroupService {
     }
   }
 
-  // ============ GROUP POSTS INTERACTIONS ============
-
-  // Like group post
   async likeGroupPost(groupId, postId, userId) {
     try {
       console.log('Liking group post');
@@ -659,7 +617,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Like group post error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -667,7 +624,6 @@ class GroupService {
     }
   }
 
-  // Unlike group post
   async unlikeGroupPost(groupId, postId, userId) {
     try {
       console.log('Unliking group post');
@@ -683,7 +639,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Unlike group post error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -691,7 +646,6 @@ class GroupService {
     }
   }
 
-  // Add comment to group post
   async addCommentToGroupPost(groupId, postId, commentData) {
     try {
       console.log('Adding comment to group post');
@@ -700,14 +654,12 @@ class GroupService {
 
       console.log('Comment added to group post successfully');
       
-      // תיקון: החזר את הנתונים בתוך data
       return {
         success: true,
-        data: response.data.data || response.data // תמיכה בשני הפורמטים
+        data: response.data.data || response.data 
       };
       
     } catch (error) {
-      console.error('Add comment to group post error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -715,7 +667,6 @@ class GroupService {
     }
   }
 
-  // Delete comment from group post
   async deleteCommentFromGroupPost(groupId, postId, commentId, userId) {
     try {
       console.log('Deleting comment from group post');
@@ -731,7 +682,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Delete comment from group post error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -739,7 +689,6 @@ class GroupService {
     }
   }
 
-  // 🆕 Get group with full member details
   async getGroupWithMembers(groupId) {
     try {
       console.log('Fetching group with full member details');
@@ -753,7 +702,6 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Fetch group with members error occurred');
       return {
         success: false,
         message: error.response?.data?.message || error.message
@@ -761,7 +709,6 @@ class GroupService {
     }
   }
 
-  // 🆕 Update member role (promote/demote)
   async updateMemberRole(groupId, memberUserId, newRole, adminUserId) {
     try {
       console.log('Updating member role');
@@ -778,7 +725,52 @@ class GroupService {
       };
       
     } catch (error) {
-      console.error('Update member role error occurred');
+      return {
+        success: false,
+        message: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  async getDiscoverGroups(userId, limit = 6) {
+    try {
+      console.log('Fetching discover groups sample');
+      
+      const params = {};
+      if (userId) params.userId = userId;
+      
+      const response = await this.axiosInstance.get('/groups', { 
+        params,
+        timeout: 15000
+      });
+
+      console.log('Groups fetched for discover');
+      
+      // סנן קבוצות שהמשתמש לא חבר בהן
+      const nonMemberGroups = response.data.filter(group => 
+        !this.isMember(group, userId)
+      );
+      
+      // בחר מדגם רנדומלי של קבוצות
+      const shuffled = nonMemberGroups.sort(() => 0.5 - Math.random());
+      const discoverGroups = shuffled.slice(0, limit);
+      
+      console.log(`Returning ${discoverGroups.length} discover groups`);
+      
+      return {
+        success: true,
+        data: discoverGroups
+      };
+      
+    } catch (error) {
+      
+      if (error.code === 'ECONNABORTED') {
+        return {
+          success: false,
+          message: 'Connection timeout - please check your network and try again'
+        };
+      }
+      
       return {
         success: false,
         message: error.response?.data?.message || error.message

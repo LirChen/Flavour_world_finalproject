@@ -13,7 +13,6 @@ import {
 import { authService } from '../../../services/authService';
 import { useAuth } from '../../../services/AuthContext';
 
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',
@@ -66,7 +65,6 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  // 🔧 תיקון: הוספת פונקציית validateForm
   const validateForm = () => {
     const isEmailValid = validateEmail(form.email);
     const isPasswordValid = validatePassword(form.password);
@@ -87,7 +85,6 @@ export default function LoginScreen({ navigation }) {
     setIsFormValid(isEmailValid && isPasswordValid);
   };
   
-  // 🔧 תיקון: פונקציית handleLogin מתוקנת
   const handleLogin = async () => {
     console.log('🔍 Login button pressed!');
     console.log('🔍 Form data:', form);
@@ -101,7 +98,6 @@ export default function LoginScreen({ navigation }) {
     
     try {
       console.log('📤 Calling authService.login...');
-      // 🔧 תיקון: שימוש ב-form.email ו-form.password
       const result = await authService.login({ 
         email: form.email, 
         password: form.password 
@@ -218,7 +214,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <View style={styles.formAction}>
-            {/* 🔧 תיקון: הסרת התנאי disabled - רק isLoading */}
+            {/**/}
             <TouchableOpacity 
               onPress={handleLogin}
               disabled={isLoading}

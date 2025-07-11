@@ -6,24 +6,20 @@ const multer = require('multer');
 
 const app = express();
 
-// Multer setup for handling FormData
 const upload = multer();
 
-// Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // for JSON requests - גדלנו בגלל תמונות
-app.use(express.urlencoded({ extended: true, limit: '50mb' })); // for form-encoded requests
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); 
 
-// Middleware לדיבוג
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - Content-Type: ${req.headers['content-type']}`);
   next();
 });
 
 
-// ============ GROUP POST ROUTES - מתוקן ============
+// ============ GROUP POST ROUTES ============
 
-// Create new group post
 app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
   try {
     console.log('=== Group Post Creation Debug ===');
@@ -34,12 +30,10 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // בדיקת תקינות Group ID
     if (!mongoose.Types.ObjectId.isValid(req.params.groupId)) {
       return res.status(400).json({ message: 'Invalid group ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -48,14 +42,13 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
     const formData = req.body;
     console.log('Group post data received:', formData);
 
-    // ✅ תיקון בדיקת חברות - תמיכה ב-string ו-ObjectId
     const userId = formData.userId;
     const isMember = group.members.some(member => 
       member.userId === userId || 
       member.userId?.toString() === userId?.toString()
     );
     
-    console.log('🔍 Membership check:', {
+    console.log('Membership check:', {
       userId,
       isMember,
       membersCount: group.members.length,
@@ -63,11 +56,10 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
     });
     
     if (!isMember) {
-      console.log('❌ User is not a member');
+      console.log('User is not a member');
       return res.status(403).json({ message: 'Only group members can post' });
     }
 
-    // ✅ תיקון בדיקת הרשאות פרסום - תמיכה בשני המבנים
     const allowMemberPosts = group.settings?.allowMemberPosts ?? group.allowMemberPosts ?? true;
     
     console.log('🔍 Post permission check:', {
@@ -85,10 +77,10 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       
       const isCreator = group.creatorId === userId || group.creatorId?.toString() === userId?.toString();
       
-      console.log('🔍 Admin/Creator check:', { isAdmin, isCreator, creatorId: group.creatorId });
+      console.log('Admin/Creator check:', { isAdmin, isCreator, creatorId: group.creatorId });
       
       if (!isAdmin && !isCreator) {
-        console.log('❌ Only admins can post in this group');
+        console.log('Only admins can post in this group');
         return res.status(403).json({ message: 'Only admins can post in this group' });
       }
     }
@@ -97,7 +89,6 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       return res.status(400).json({ message: 'Recipe title is required' });
     }
 
-    // טיפול בתמונה
     let imageData = null;
     if (req.files && req.files.length > 0) {
       const imageFile = req.files.find(file => 
@@ -116,7 +107,6 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       imageData = formData.image;
     }
 
-    // ✅ תיקון יצירת פוסט הקבוצה - אישור אוטומטי לחברי קבוצה
     const requireApproval = group.settings?.requireApproval ?? group.requireApproval ?? false;
     const isCreator = group.creatorId === userId || group.creatorId?.toString() === userId?.toString();
     const isAdmin = group.members.some(member => 
@@ -124,7 +114,6 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       (member.role === 'admin' || member.role === 'owner')
     );
 
-    // ✅ אישור אוטומטי - כל חבר בקבוצה יכול לפרסם אלא אם כן נדרש אישור ספציפי
     const autoApprove = !requireApproval || isCreator || isAdmin;
 
     const postData = {
@@ -141,7 +130,7 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       groupId: req.params.groupId,
       likes: [],
       comments: [],
-      isApproved: autoApprove // ✅ אישור אוטומטי לחברי קבוצה
+      isApproved: autoApprove 
     };
 
     console.log('🔍 Creating post with approval status:', {
@@ -157,9 +146,8 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
     const groupPost = new GroupPost(postData);
     const savedPost = await groupPost.save();
     
-    console.log('✅ Group post saved successfully:', savedPost._id);
+    console.log('Group post saved successfully:', savedPost._id);
 
-    // החזרת הפוסט עם נתוני המשתמש
     const user = await User.findById(savedPost.userId);
     const enrichedPost = {
       ...savedPost.toObject(),
@@ -169,7 +157,6 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
       groupName: group.name
     };
 
-    // ✅ הוסף הודעה על סטטוס האישור
     const responseMessage = postData.isApproved 
       ? 'Group post created successfully'
       : 'Group post created and waiting for approval';
@@ -180,13 +167,10 @@ app.post('/api/groups/:groupId/posts', upload.any(), async (req, res) => {
     });
     
   } catch (error) {
-    console.error('=== GROUP POST CREATION ERROR ===');
-    console.error('Error:', error);
     res.status(500).json({ message: 'Failed to create group post' });
   }
 });
 
-// Get all posts for a specific group - מתוקן לכלול פוסטים של כל החברים
 app.get('/api/groups/:groupId/posts', async (req, res) => {
   try {
     console.log('GET group posts request:', {
@@ -202,7 +186,6 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
       return res.status(400).json({ message: 'Invalid group ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -216,7 +199,6 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
 
     const { userId } = req.query;
 
-    // בדיקת חברות בקבוצה
     let isMember = false;
     let isAdmin = false;
     let isCreator = false;
@@ -242,22 +224,16 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
       isPrivate: group.isPrivate 
     });
 
-    // בדיקת גישה לקבוצה פרטית
     if (group.isPrivate && !isMember) {
       console.log('Access denied to private group, returning empty array');
       return res.json([]);
     }
 
-    // 🔧 תיקון עיקרי: טען פוסטים לפי סטטוס האישור והרשאות המשתמש
     let postsQuery = { groupId: req.params.groupId };
 
     if (isAdmin || isCreator) {
-      // אדמינים רואים הכל (כולל פוסטים שמחכים לאישור)
       console.log('Admin/Creator - showing all posts');
     } else if (isMember) {
-      // חברים רגילים רואים:
-      // 1. פוסטים מאושרים של כולם
-      // 2. הפוסטים שלהם (גם אם עוד לא אושרו)
       postsQuery = {
         groupId: req.params.groupId,
         $or: [
@@ -267,12 +243,10 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
       };
       console.log('Member - showing approved posts + own pending posts');
     } else {
-      // לא חברים רואים רק פוסטים מאושרים (אם זו קבוצה ציבורית)
       postsQuery.isApproved = true;
       console.log('Non-member - showing only approved posts');
     }
 
-    // טען פוסטים של הקבוצה
     const posts = await GroupPost.find(postsQuery).sort({ createdAt: -1 });
 
     console.log('Posts query result:', {
@@ -281,7 +255,6 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
       groupId: req.params.groupId
     });
 
-    // העשרה עם נתוני המשתמש
     const enrichedPosts = await Promise.all(
       posts.map(async (post) => {
         try {
@@ -292,12 +265,10 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
             userAvatar: user ? user.avatar : null,
             userBio: user ? user.bio : null,
             groupName: group.name,
-            // 🆕 הוסף מידע על סטטוס האישור
             isPending: !post.isApproved,
             canApprove: (isAdmin || isCreator) && !post.isApproved
           };
         } catch (error) {
-          console.error('Error enriching post:', post._id, error);
           return {
             ...post.toObject(),
             userName: 'Unknown User',
@@ -315,12 +286,10 @@ app.get('/api/groups/:groupId/posts', async (req, res) => {
     res.json(enrichedPosts);
     
   } catch (error) {
-    console.error('Get group posts error:', error);
     res.status(500).json({ message: 'Failed to fetch group posts' });
   }
 });
 
-// Delete group post
 app.delete('/api/groups/:groupId/posts/:postId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -344,7 +313,6 @@ app.delete('/api/groups/:groupId/posts/:postId', async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // בדיקת הרשאות - יוצר הפוסט או אדמין של הקבוצה
     const isPostOwner = post.userId === userId;
     const isGroupAdmin = group.members.some(member => 
       member.userId === userId && member.role === 'admin'
@@ -358,18 +326,15 @@ app.delete('/api/groups/:groupId/posts/:postId', async (req, res) => {
     await GroupPost.findByIdAndDelete(postId);
     res.json({ message: 'Group post deleted successfully' });
   } catch (error) {
-    console.error('Delete group post error:', error);
     res.status(500).json({ message: 'Failed to delete group post' });
   }
 });
 
 // ============ GROUP POST INTERACTIONS ============
-// הוסף את הקוד הזה אחרי הקוד הקיים של GROUP POST ROUTES בשרת שלך
 
-// Like group post
 app.post('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
   try {
-    console.log('👍 Liking group post...');
+    console.log('Liking group post...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -413,7 +378,6 @@ app.post('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
     post.likes.push(userId);
     await post.save();
 
-    // 🆕 יצירת התראה רק אם זה לא הפוסט של עצמו
     if (post.userId !== userId) {
       const liker = await User.findById(userId);
       await createNotification({
@@ -433,7 +397,7 @@ app.post('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
       });
     }
 
-    console.log('✅ Group post liked successfully');
+    console.log('Group post liked successfully');
     res.json({ 
       message: 'Post liked successfully',
       likes: post.likes,
@@ -441,12 +405,10 @@ app.post('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Like group post error:', error);
     res.status(500).json({ message: 'Failed to like post' });
   }
 });
 
-// Unlike group post
 app.delete('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
   try {
     console.log('👎 Unliking group post...');
@@ -458,7 +420,6 @@ app.delete('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
     const { groupId, postId } = req.params;
     const { userId } = req.body;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(postId)) {
       return res.status(400).json({ message: 'Invalid group or post ID' });
     }
@@ -467,39 +428,33 @@ app.delete('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקה שהמשתמש חבר בקבוצה
     const isMember = group.members.some(member => member.userId === userId);
     if (!isMember) {
       return res.status(403).json({ message: 'Only group members can unlike posts' });
     }
 
-    // מציאת הפוסט
     const post = await GroupPost.findById(postId);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // בדיקה שהפוסט שייך לקבוצה
     if (post.groupId !== groupId) {
       return res.status(400).json({ message: 'Post does not belong to this group' });
     }
 
-    // בדיקה שכבר עשה לייק
     if (!post.likes || !post.likes.includes(userId)) {
       return res.status(400).json({ message: 'Post not liked yet' });
     }
 
-    // הסרת הלייק
     post.likes = post.likes.filter(id => id !== userId);
     await post.save();
 
-    console.log('✅ Group post unliked successfully');
+    console.log('Group post unliked successfully');
     res.json({ 
       message: 'Post unliked successfully',
       likes: post.likes,
@@ -507,15 +462,13 @@ app.delete('/api/groups/:groupId/posts/:postId/like', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Unlike group post error:', error);
     res.status(500).json({ message: 'Failed to unlike post' });
   }
 });
 
-// Add comment to group post
 app.post('/api/groups/:groupId/posts/:postId/comments', async (req, res) => {
   try {
-    console.log('💬 Adding comment to group post...');
+    console.log('Adding comment to group post...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -569,7 +522,6 @@ app.post('/api/groups/:groupId/posts/:postId/comments', async (req, res) => {
     post.comments.push(newComment);
     await post.save();
 
-    // 🆕 יצירת התראה רק אם זה לא הפוסט של עצמו
     if (post.userId !== userId) {
       await createNotification({
         type: 'comment',
@@ -588,7 +540,7 @@ app.post('/api/groups/:groupId/posts/:postId/comments', async (req, res) => {
       });
     }
 
-    console.log('✅ Comment added to group post successfully');
+    console.log('Comment added to group post successfully');
     res.status(201).json({
       success: true,
       message: 'Comment added successfully',
@@ -600,17 +552,15 @@ app.post('/api/groups/:groupId/posts/:postId/comments', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Add comment to group post error:', error);
     res.status(500).json({ message: 'Failed to add comment' });
   }
 });
 
-console.log('✅ Notifications activated for all user actions');
+console.log('Notifications activated for all user actions');
 
-// Delete comment from group post
 app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req, res) => {
   try {
-    console.log('🗑️ Deleting comment from group post...');
+    console.log('Deleting comment from group post...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -619,7 +569,6 @@ app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req,
     const { groupId, postId, commentId } = req.params;
     const { userId } = req.body;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(postId)) {
       return res.status(400).json({ message: 'Invalid group or post ID' });
     }
@@ -628,30 +577,25 @@ app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req,
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקה שהמשתמש חבר בקבוצה
     const isMember = group.members.some(member => member.userId === userId);
     if (!isMember) {
       return res.status(403).json({ message: 'Only group members can delete comments' });
     }
 
-    // מציאת הפוסט
     const post = await GroupPost.findById(postId);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // בדיקה שהפוסט שייך לקבוצה
     if (post.groupId !== groupId) {
       return res.status(400).json({ message: 'Post does not belong to this group' });
     }
 
-    // מציאת התגובה
     const commentIndex = post.comments.findIndex(comment => 
       comment._id.toString() === commentId
     );
@@ -662,7 +606,6 @@ app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req,
 
     const comment = post.comments[commentIndex];
 
-    // בדיקת הרשאות - יוצר התגובה או אדמין של הקבוצה
     const isCommentOwner = comment.userId === userId;
     const isGroupAdmin = group.members.some(member => 
       member.userId === userId && member.role === 'admin'
@@ -672,11 +615,10 @@ app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req,
     if (!isCommentOwner && !isGroupAdmin && !isGroupCreator) {
       return res.status(403).json({ message: 'Permission denied' });
     }
-// מחיקת התגובה
     post.comments.splice(commentIndex, 1);
     await post.save();
 
-    console.log('✅ Comment deleted from group post successfully');
+    console.log('Comment deleted from group post successfully');
     res.json({ 
       message: 'Comment deleted successfully',
       comments: post.comments,
@@ -684,12 +626,10 @@ app.delete('/api/groups/:groupId/posts/:postId/comments/:commentId', async (req,
     });
 
   } catch (error) {
-    console.error('❌ Delete comment from group post error:', error);
     res.status(500).json({ message: 'Failed to delete comment' });
   }
 });
 
-// Get group post with comments and likes (עזר לדיבוג)
 app.get('/api/groups/:groupId/posts/:postId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -698,29 +638,24 @@ app.get('/api/groups/:groupId/posts/:postId', async (req, res) => {
 
     const { groupId, postId } = req.params;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(postId)) {
       return res.status(400).json({ message: 'Invalid group or post ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // מציאת הפוסט
     const post = await GroupPost.findById(postId);
     if (!post) {
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    // בדיקה שהפוסט שייך לקבוצה
     if (post.groupId !== groupId) {
       return res.status(400).json({ message: 'Post does not belong to this group' });
     }
 
-    // העשרה עם נתוני המשתמש
     const user = await User.findById(post.userId);
     const enrichedPost = {
       ...post.toObject(),
@@ -733,14 +668,12 @@ app.get('/api/groups/:groupId/posts/:postId', async (req, res) => {
     res.json(enrichedPost);
 
   } catch (error) {
-    console.error('Get group post error:', error);
     res.status(500).json({ message: 'Failed to fetch group post' });
   }
 });
 
 // ============ GROUP ROUTES ============
 
-// Create new group
 app.post('/api/groups', upload.any(), async (req, res) => {
   try {
     console.log('=== Create Group Debug ===');
@@ -761,7 +694,6 @@ app.post('/api/groups', upload.any(), async (req, res) => {
       return res.status(400).json({ message: 'Creator ID is required' });
     }
 
-    // טיפול בתמונת הקבוצה
     let imageData = null;
     if (req.files && req.files.length > 0) {
       const imageFile = req.files.find(file => 
@@ -780,7 +712,6 @@ app.post('/api/groups', upload.any(), async (req, res) => {
       imageData = formData.image;
     }
 
-    // יצירת הקבוצה
     const groupData = {
       name: formData.name.trim(),
       description: formData.description || '',
@@ -807,7 +738,6 @@ app.post('/api/groups', upload.any(), async (req, res) => {
     
     console.log('Group created successfully:', savedGroup._id);
 
-    // החזרת הקבוצה עם נתוני היוצר
     const creator = await User.findById(savedGroup.creatorId);
     const enrichedGroup = {
       ...savedGroup.toObject(),
@@ -819,15 +749,12 @@ app.post('/api/groups', upload.any(), async (req, res) => {
 
     res.status(201).json(enrichedGroup);
   } catch (error) {
-    console.error('=== CREATE GROUP ERROR ===');
-    console.error('Error:', error);
     res.status(500).json({ message: 'Failed to create group' });
   }
 });
-// ✅ חיפוש קבוצות - חייב להיות לפני '/api/groups'
 app.get('/api/groups/search', async (req, res) => {
   try {
-    console.log('🔍 Groups search request:', req.query);
+    console.log('Groups search request:', req.query);
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -839,9 +766,8 @@ app.get('/api/groups/search', async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    console.log(`🔍 Searching groups with query: "${q}"`);
+    console.log(`Searching groups with query: "${q}"`);
 
-    // בניית תנאי החיפוש
     const searchConditions = {
       $and: [
         {
@@ -854,10 +780,8 @@ app.get('/api/groups/search', async (req, res) => {
       ]
     };
 
-    // הוספת תנאי פרטיות
     if (includePrivate !== 'true') {
       if (userId) {
-        // כלול קבוצות ציבוריות + קבוצות שהמשתמש חבר בהן
         searchConditions.$and.push({
           $or: [
             { isPrivate: { $ne: true } },
@@ -865,20 +789,18 @@ app.get('/api/groups/search', async (req, res) => {
           ]
         });
       } else {
-        // רק קבוצות ציבוריות
         searchConditions.$and.push({ isPrivate: { $ne: true } });
       }
     }
 
-    console.log('🔍 Search conditions:', JSON.stringify(searchConditions, null, 2));
+    console.log('Search conditions:', JSON.stringify(searchConditions, null, 2));
 
     const groups = await Group.find(searchConditions).limit(50).sort({ 
       createdAt: -1 
     });
 
-    console.log(`📊 Found ${groups.length} groups matching search`);
+    console.log(`Found ${groups.length} groups matching search`);
 
-    // העשרה עם נתונים נוספים
     const enrichedGroups = await Promise.all(
       groups.map(async (group) => {
         try {
@@ -892,7 +814,6 @@ app.get('/api/groups/search', async (req, res) => {
               isApproved: true 
             });
           } catch (error) {
-            // GroupPost model might not exist yet
             console.log('Could not count posts for group:', group._id);
           }
 
@@ -916,25 +837,21 @@ app.get('/api/groups/search', async (req, res) => {
             createdAt: group.createdAt
           };
         } catch (error) {
-          console.error('Error enriching search result:', group._id, error);
           return null;
         }
       })
     );
 
-    // סנן תוצאות null
     const validResults = enrichedGroups.filter(group => group !== null);
 
-    console.log(`✅ Returning ${validResults.length} groups for search query: "${q}"`);
+    console.log(`Returning ${validResults.length} groups for search query: "${q}"`);
     res.json(validResults);
     
   } catch (error) {
-    console.error('❌ Groups search error:', error);
     res.status(500).json({ message: 'Failed to search groups' });
   }
 });
 
-// Get all groups (public + user's private groups)
 app.get('/api/groups', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -945,7 +862,6 @@ app.get('/api/groups', async (req, res) => {
     
     let groups;
     if (userId) {
-      // קבוצות ציבוריות + קבוצות פרטיות שהמשתמש חבר בהן
       groups = await Group.find({
         $or: [
           { isPrivate: false },
@@ -953,11 +869,9 @@ app.get('/api/groups', async (req, res) => {
         ]
       }).sort({ createdAt: -1 });
     } else {
-      // רק קבוצות ציבוריות
       groups = await Group.find({ isPrivate: false }).sort({ createdAt: -1 });
     }
 
-    // העשרה עם נתונים נוספים
     const enrichedGroups = await Promise.all(
       groups.map(async (group) => {
         const creator = await User.findById(group.creatorId);
@@ -975,15 +889,13 @@ app.get('/api/groups', async (req, res) => {
 
     res.json(enrichedGroups);
   } catch (error) {
-    console.error('Get groups error:', error);
     res.status(500).json({ message: 'Failed to fetch groups' });
   }
 });
 
-// ✅ Get single group with details - תיקון להחזיר פרטי מבקשים
 app.get('/api/groups/:id', async (req, res) => {
   try {
-    console.log('📥 Get single group request:', req.params.id);
+    console.log('Get single group request:', req.params.id);
     
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid group ID' });
@@ -994,13 +906,11 @@ app.get('/api/groups/:id', async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    console.log('📋 Group found:', group.name);
+    console.log('Group found:', group.name);
 
     try {
-      // ✅ העשרה עם נתונים מפורטים
       const creator = await User.findById(group.creatorId);
       
-      // ספירת פוסטים מאושרים
       let postsCount = 0;
       try {
         postsCount = await GroupPost.countDocuments({ 
@@ -1011,7 +921,6 @@ app.get('/api/groups/:id', async (req, res) => {
         console.log('Could not count posts for group:', group._id);
       }
       
-      // ✅ רשימת חברים עם פרטים מלאים
       const membersDetails = await Promise.all(
         (group.members || []).map(async (member) => {
           try {
@@ -1025,7 +934,6 @@ app.get('/api/groups/:id', async (req, res) => {
               userEmail: user ? user.email : null
             };
           } catch (error) {
-            console.error('Error fetching member details:', member.userId, error);
             return {
               userId: member.userId,
               role: member.role || 'member',
@@ -1038,17 +946,16 @@ app.get('/api/groups/:id', async (req, res) => {
         })
       );
 
-      // ✅ רשימת בקשות ממתינות עם פרטים מלאים - זה הדבר החשוב!
-      console.log('🔍 Processing pending requests:', group.pendingRequests?.length || 0);
+      console.log('Processing pending requests:', group.pendingRequests?.length || 0);
       
       const pendingRequestsDetails = await Promise.all(
         (group.pendingRequests || []).map(async (request) => {
           try {
-            console.log('🔍 Fetching user details for request:', request.userId);
+            console.log('Fetching user details for request:', request.userId);
             const user = await User.findById(request.userId);
             
             if (!user) {
-              console.log('⚠️  User not found for request:', request.userId);
+              console.log('User not found for request:', request.userId);
               return {
                 userId: request.userId,
                 requestDate: request.createdAt || request.requestDate || new Date(),
@@ -1059,7 +966,7 @@ app.get('/api/groups/:id', async (req, res) => {
               };
             }
             
-            console.log('✅ Found user for request:', user.fullName);
+            console.log('Found user for request:', user.fullName);
             return {
               userId: request.userId,
               requestDate: request.createdAt || request.requestDate || new Date(),
@@ -1069,7 +976,6 @@ app.get('/api/groups/:id', async (req, res) => {
               userEmail: user.email
             };
           } catch (error) {
-            console.error('❌ Error fetching request details for user:', request.userId, error);
             return {
               userId: request.userId,
               requestDate: request.createdAt || new Date(),
@@ -1082,7 +988,7 @@ app.get('/api/groups/:id', async (req, res) => {
         })
       );
 
-      console.log('📊 Pending requests details processed:', {
+      console.log('Pending requests details processed:', {
         totalRequests: pendingRequestsDetails.length,
         usersFound: pendingRequestsDetails.filter(r => r.userName !== 'Unknown User').length,
         unknownUsers: pendingRequestsDetails.filter(r => r.userName === 'Unknown User').length
@@ -1103,8 +1009,7 @@ app.get('/api/groups/:id', async (req, res) => {
         members: group.members || [],
         membersDetails,
         pendingRequests: group.pendingRequests || [],
-        pendingRequestsDetails, // ✅ זה החשוב!
-        // ✅ תמיכה בשני מבני הגדרות
+        pendingRequestsDetails, 
         settings: group.settings || {
           allowMemberPosts: group.allowMemberPosts ?? true,
           requireApproval: group.requireApproval ?? false,
@@ -1117,7 +1022,7 @@ app.get('/api/groups/:id', async (req, res) => {
         updatedAt: group.updatedAt
       };
 
-      console.log('✅ Group enriched successfully:', {
+      console.log('Group enriched successfully:', {
         name: enrichedGroup.name,
         membersCount: enrichedGroup.membersCount,
         postsCount: enrichedGroup.postsCount,
@@ -1128,8 +1033,6 @@ app.get('/api/groups/:id', async (req, res) => {
       res.json(enrichedGroup);
       
     } catch (enrichError) {
-      console.error('❌ Error enriching group data:', enrichError);
-      // החזר נתונים בסיסיים אם ההעשרה נכשלה
       res.json({
         _id: group._id,
         name: group.name,
@@ -1145,7 +1048,7 @@ app.get('/api/groups/:id', async (req, res) => {
         members: group.members || [],
         membersDetails: [],
         pendingRequests: group.pendingRequests || [],
-        pendingRequestsDetails: [], // גם כאן ריק במקרה של שגיאה
+        pendingRequestsDetails: [], 
         settings: {},
         allowMemberPosts: true,
         requireApproval: false,
@@ -1155,15 +1058,13 @@ app.get('/api/groups/:id', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Get group error:', error);
     res.status(500).json({ message: 'Failed to fetch group' });
   }
 });
 
-// ✅ Join group (request to join) - מתוקן
 app.post('/api/groups/:groupId/join', async (req, res) => {
   try {
-    console.log('🔄 Join group request:', req.params.groupId);
+    console.log('Join group request:', req.params.groupId);
     
     if (!mongoose.Types.ObjectId.isValid(req.params.groupId)) {
       return res.status(400).json({ message: 'Invalid group ID' });
@@ -1175,15 +1076,13 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // מצא את הקבוצה
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    console.log('📋 Group found:', group.name);
+    console.log('Group found:', group.name);
 
-    // בדוק שהמשתמש לא כבר חבר בקבוצה
     const isMember = group.members.some(member => 
       member.userId === userId || member.userId?.toString() === userId?.toString()
     );
@@ -1192,7 +1091,6 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'User is already a member of this group' });
     }
 
-    // בדוק שאין כבר בקשה ממתינה
     const hasPendingRequest = group.pendingRequests.some(request => 
       request.userId === userId || request.userId?.toString() === userId?.toString()
     );
@@ -1201,18 +1099,16 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'Join request already pending' });
     }
 
-    // ✅ בדוק אם זו קבוצה פרטית הדורשת אישור
     if (group.isPrivate || group.settings?.requireApproval || group.requireApproval) {
-      // הוסף לרשימת בקשות ממתינות
       group.pendingRequests.push({
         userId: userId,
         requestDate: new Date(),
-        createdAt: new Date() // גם שדה זה למקרה
+        createdAt: new Date() 
       });
 
       await group.save();
 
-      console.log('✅ Join request added to pending list');
+      console.log('Join request added to pending list');
 
       res.json({
         message: 'Join request sent successfully',
@@ -1222,7 +1118,6 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
       });
 
     } else {
-      // קבוצה ציבורית - הוסף ישירות כחבר
       group.members.push({
         userId: userId,
         role: 'member',
@@ -1231,7 +1126,7 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
 
       await group.save();
 
-      console.log('✅ User added directly to group (public group)');
+      console.log('User added directly to group (public group)');
 
       res.json({
         message: 'Joined group successfully',
@@ -1242,26 +1137,23 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Join group error:', error);
     res.status(500).json({ message: 'Failed to join group' });
   }
 });
 
-// Approve/Reject join request (admin only)
 app.put('/api/groups/:id/requests/:userId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    const { action, adminId } = req.body; // action: 'approve' or 'reject'
+    const { action, adminId } = req.body; 
     
     const group = await Group.findById(req.params.id);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקת הרשאות אדמין
     const isAdmin = group.members.some(member => 
       member.userId === adminId && member.role === 'admin'
     );
@@ -1271,17 +1163,14 @@ app.put('/api/groups/:id/requests/:userId', async (req, res) => {
 
     const { userId } = req.params;
     
-    // מציאת הבקשה
     const requestIndex = group.pendingRequests.findIndex(request => request.userId === userId);
     if (requestIndex === -1) {
       return res.status(404).json({ message: 'Join request not found' });
     }
 
-    // הסרת הבקשה מהרשימה
     group.pendingRequests.splice(requestIndex, 1);
 
     if (action === 'approve') {
-      // הוספה כחבר
       group.members.push({
         userId: userId,
         role: 'member',
@@ -1294,12 +1183,10 @@ app.put('/api/groups/:id/requests/:userId', async (req, res) => {
     const message = action === 'approve' ? 'User approved successfully' : 'User rejected successfully';
     res.json({ message, action });
   } catch (error) {
-    console.error('Handle request error:', error);
     res.status(500).json({ message: 'Failed to handle request' });
   }
 });
 
-// Remove member from group (Admin only)
 app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
   try {
     console.log('Removing member from group');
@@ -1311,18 +1198,15 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
     const { groupId, memberUserId } = req.params;
     const { adminId } = req.body;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !memberUserId || !adminId) {
       return res.status(400).json({ message: 'Invalid group ID, member ID, or admin ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקה שהמבקש הוא אדמין או יוצר הקבוצה
     const isAdmin = group.members.some(member => 
       (member.userId === adminId || member.userId?.toString() === adminId?.toString()) && 
       (member.role === 'admin' || member.role === 'owner')
@@ -1333,7 +1217,6 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
       return res.status(403).json({ message: 'Only admins can remove members' });
     }
 
-    // בדיקה שהחבר קיים בקבוצה
     const memberIndex = group.members.findIndex(member => 
       member.userId === memberUserId || member.userId?.toString() === memberUserId?.toString()
     );
@@ -1344,17 +1227,14 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
 
     const memberToRemove = group.members[memberIndex];
 
-    // מניעת הסרת היוצר
     if (memberToRemove.role === 'owner' || group.creatorId === memberUserId || group.creatorId?.toString() === memberUserId?.toString()) {
       return res.status(403).json({ message: 'Cannot remove the group creator' });
     }
 
-    // מניעת הסרה עצמית (השתמש ב-leave endpoint במקום)
     if (memberUserId === adminId) {
       return res.status(400).json({ message: 'Use leave group endpoint to remove yourself' });
     }
 
-    // הסרת החבר מהקבוצה
     group.members.splice(memberIndex, 1);
     group.membersCount = group.members.length;
     
@@ -1368,15 +1248,13 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Remove member error:', error);
     res.status(500).json({ message: 'Failed to remove member' });
   }
 });
 
-// ✅ ביטול בקשת הצטרפות לקבוצה
 app.delete('/api/groups/:groupId/join', async (req, res) => {
   try {
-    console.log('🔄 Canceling join request for group:', req.params.groupId);
+    console.log('Canceling join request for group:', req.params.groupId);
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -1392,15 +1270,13 @@ app.delete('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // מצא את הקבוצה
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    console.log('📋 Group found:', group.name);
+    console.log('Group found:', group.name);
 
-    // בדוק שהמשתמש לא כבר חבר בקבוצה
     const isMember = group.members.some(member => 
       member.userId === userId || member.userId?.toString() === userId?.toString()
     );
@@ -1409,7 +1285,6 @@ app.delete('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'User is already a member of this group' });
     }
 
-    // בדוק שיש בקשה ממתינה
     const hasPendingRequest = group.pendingRequests.some(request => 
       request.userId === userId || request.userId?.toString() === userId?.toString()
     );
@@ -1418,14 +1293,13 @@ app.delete('/api/groups/:groupId/join', async (req, res) => {
       return res.status(400).json({ message: 'No pending request found for this user' });
     }
 
-    // הסר את הבקשה מרשימת הבקשות הממתינות
     group.pendingRequests = group.pendingRequests.filter(request => 
       request.userId !== userId && request.userId?.toString() !== userId?.toString()
     );
 
     await group.save();
 
-    console.log('✅ Join request canceled successfully');
+    console.log('Join request canceled successfully');
 
     res.json({
       message: 'Join request canceled successfully',
@@ -1435,12 +1309,10 @@ app.delete('/api/groups/:groupId/join', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Cancel join request error:', error);
     res.status(500).json({ message: 'Failed to cancel join request' });
   }
 });
 
-// Leave group
 app.delete('/api/groups/:id/members/:userId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -1456,23 +1328,19 @@ app.delete('/api/groups/:id/members/:userId', async (req, res) => {
     console.log('group.creatorId:', group.creatorId);
     console.log('userId:', userId);
     console.log('group.members before:', group.members);
-    // לא ניתן להסיר את היוצר
     if (group.creatorId === userId || group.creatorId?.toString() === userId?.toString()) {
       return res.status(400).json({ message: 'Group creator cannot leave the group' });
     }
 
-    // הסרת החבר
     group.members = group.members.filter(member => member.userId !== userId && member.userId?.toString() !== userId?.toString());
     await group.save();
     
     res.json({ message: 'Left group successfully' });
   } catch (error) {
-    console.error('Leave group error:', error);
     res.status(500).json({ message: 'Failed to leave group' });
   }
 });
 
-// Leave group (self-removal)
 app.delete('/api/groups/:groupId/leave/:userId', async (req, res) => {
   try {
     console.log('User leaving group');
@@ -1483,29 +1351,24 @@ app.delete('/api/groups/:groupId/leave/:userId', async (req, res) => {
 
     const { groupId, userId } = req.params;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid group ID or user ID' });
     }
 
-    // שליפת הקבוצה
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // מניעת הסרת היוצר
     if (group.creatorId?.toString() === userId) {
       return res.status(400).json({ message: 'Group creator cannot leave the group' });
     }
 
-    // הסרת המשתמש מהרשימה
     const initialCount = group.members.length;
     group.members = group.members.filter(member =>
       member.userId?.toString() !== userId
     );
     
-    // בדיקה אם המשתמש בכלל היה בקבוצה
     if (group.members.length === initialCount) {
       return res.status(404).json({ message: 'User not found in group' });
     }
@@ -1517,12 +1380,10 @@ app.delete('/api/groups/:groupId/leave/:userId', async (req, res) => {
     res.json({ message: 'Left group successfully', userId });
 
   } catch (error) {
-    console.error('Leave group error:', error);
     res.status(500).json({ message: 'Failed to leave group' });
   }
 });
 
-// Update group (admin/creator only) 
 app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -1542,21 +1403,19 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
       updatedBy 
     } = req.body;
 
-    console.log('✅ Updating group:', groupId);
+    console.log('Updating group:', groupId);
     console.log('Updated by:', updatedBy);
 
-    // מצא את הקבוצה
     const group = await Group.findById(groupId);
     if (!group) {
-      console.log('❌ Group not found:', groupId);
+      console.log('Group not found:', groupId);
       return res.status(404).json({
         message: 'Group not found'
       });
     }
 
-    console.log('✅ Group found:', group.name);
+    console.log('Group found:', group.name);
 
-    // בדוק הרשאות - creator או admin
     const isCreator = group.creatorId === updatedBy || group.creatorId?.toString() === updatedBy?.toString();
     const isAdmin = group.members?.some(member => 
       (member.userId === updatedBy || member.userId?.toString() === updatedBy?.toString()) && 
@@ -1566,44 +1425,40 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
     console.log('Permission check:', { isCreator, isAdmin, creatorId: group.creatorId, updatedBy });
 
     if (!isCreator && !isAdmin) {
-      console.log('❌ Permission denied');
+      console.log('Permission denied');
       return res.status(403).json({
         message: 'Only group admins can update settings'
       });
     }
 
-    console.log('✅ Permission granted');
+    console.log('Permission granted');
 
-    // עדכן את השדות
     if (name) group.name = name;
     if (description !== undefined) group.description = description;
     if (category) group.category = category;
     if (rules !== undefined) group.rules = rules;
     if (isPrivate !== undefined) group.isPrivate = isPrivate === 'true';
 
-    // עדכן הגדרות
     if (!group.settings) group.settings = {};
     
     if (allowMemberPosts !== undefined) {
       group.settings.allowMemberPosts = allowMemberPosts === 'true';
-      group.allowMemberPosts = group.settings.allowMemberPosts; // תאימות לאחור
+      group.allowMemberPosts = group.settings.allowMemberPosts; 
     }
     
     if (requireApproval !== undefined) {
       const requireApprovalValue = (isPrivate === 'true') ? (requireApproval === 'true') : false;
       group.settings.requireApproval = requireApprovalValue;
-      group.requireApproval = requireApprovalValue; // תאימות לאחור
+      group.requireApproval = requireApprovalValue; 
     }
     
     if (allowInvites !== undefined) {
       group.settings.allowInvites = allowInvites === 'true';
-      group.allowInvites = group.settings.allowInvites; // תאימות לאחור
+      group.allowInvites = group.settings.allowInvites; 
     }
 
-    // עדכן תמונה אם הועלתה
     if (req.file) {
-      console.log('📷 New image uploaded:', req.file.filename);
-      // אם יש תמונה ישנה, אפשר למחוק אותה
+      console.log('New image uploaded:', req.file.filename);
       if (group.image) {
         const fs = require('fs');
         const path = require('path');
@@ -1611,9 +1466,9 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
         if (fs.existsSync(oldImagePath)) {
           try {
             fs.unlinkSync(oldImagePath);
-            console.log('🗑️ Old image deleted');
+            console.log('Old image deleted');
           } catch (err) {
-            console.log('⚠️ Could not delete old image:', err.message);
+            console.log('Could not delete old image:', err.message);
           }
         }
       }
@@ -1623,7 +1478,7 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
     group.updatedAt = new Date();
     const updatedGroup = await group.save();
 
-    console.log('✅ Group updated successfully');
+    console.log('Group updated successfully');
 
     res.json({
       message: 'Group updated successfully',
@@ -1631,7 +1486,6 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Update group error:', error);
     res.status(500).json({
       message: 'Failed to update group',
       error: error.message
@@ -1639,7 +1493,6 @@ app.put('/api/groups/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-// Delete group (creator only)
 app.delete('/api/groups/:id', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -1657,20 +1510,16 @@ app.delete('/api/groups/:id', async (req, res) => {
       return res.status(403).json({ message: 'Only group creator can delete the group' });
     }
 
-    // מחיקת כל הפוסטים של הקבוצה
     await GroupPost.deleteMany({ groupId: req.params.id });
     
-    // מחיקת הקבוצה
     await Group.findByIdAndDelete(req.params.id);
     
     res.json({ message: 'Group deleted successfully' });
   } catch (error) {
-    console.error('Delete group error:', error);
     res.status(500).json({ message: 'Failed to delete group' });
   }
 });
 
-// Get user profile
 app.get('/api/user/profile/:userId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -1699,19 +1548,16 @@ app.get('/api/user/profile/:userId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Get profile error:', error);
     res.status(500).json({ message: 'Failed to get profile' });
   }
 });
 
-// Delete recipe
 app.delete('/api/recipes/:id', async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // בדיקת תקינות ID
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
@@ -1723,24 +1569,20 @@ app.delete('/api/recipes/:id', async (req, res) => {
 
     res.json({ message: 'Recipe deleted successfully' });
   } catch (error) {
-    console.error('Delete recipe error:', error);
     res.status(500).json({ message: 'Failed to delete recipe' });
   }
 });
 
-// MongoDB connection - עם טיפול יותר טוב בשגיאות
 if (process.env.MONGODB_URI) {
   mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('MongoDB Connected'))
     .catch(err => {
       console.log('MongoDB Connection Error:', err);
-      // לא נקריס את האפליקציה אם מונגו לא מתחבר
     });
 } else {
   console.log('MONGODB_URI not found - running without database');
 }
 
-// User schema - עם הוספת avatar ו-bio
 const UserSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -1753,24 +1595,23 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', UserSchema);
 
-// Group schema - מערכת קבוצות
 const GroupSchema = new mongoose.Schema({
   name: { type: String, required: true, maxlength: 100 },
   description: { type: String, maxlength: 500 },
-  image: { type: String, maxlength: 10000000 }, // תמונת נושא של הקבוצה
-  creatorId: { type: String, required: true }, // יוצר הקבוצה
-  isPrivate: { type: Boolean, default: false }, // קבוצה פרטית או ציבורית
-  category: { type: String, default: 'General' }, // קטגוריית הקבוצה
+  image: { type: String, maxlength: 10000000 }, 
+  creatorId: { type: String, required: true }, 
+  isPrivate: { type: Boolean, default: false }, 
+  category: { type: String, default: 'General' }, 
   members: [{
     userId: String,
     role: { type: String, enum: ['admin', 'member'], default: 'member' },
     joinedAt: { type: Date, default: Date.now }
   }],
-  pendingRequests: [{ // בקשות להצטרפות
+  pendingRequests: [{ 
     userId: String,
     requestedAt: { type: Date, default: Date.now }
   }],
-  rules: { type: String, maxlength: 1000 }, // חוקי הקבוצה
+  rules: { type: String, maxlength: 1000 }, 
   settings: {
     allowMemberPosts: { type: Boolean, default: true },
     requireApproval: { type: Boolean, default: true },
@@ -1780,7 +1621,6 @@ const GroupSchema = new mongoose.Schema({
 
 const Group = mongoose.model('Group', GroupSchema);
 
-// GroupPost schema - פוסטים של קבוצות
 const GroupPostSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
@@ -1792,7 +1632,7 @@ const GroupPostSchema = new mongoose.Schema({
   servings: { type: Number, default: 1 },
   image: { type: String, maxlength: 10000000 },
   userId: { type: String, required: true },
-  groupId: { type: String, required: true }, // שייך לקבוצה ספציפית
+  groupId: { type: String, required: true }, 
   likes: [{ type: String }],
   comments: [{
     userId: String,
@@ -1800,11 +1640,10 @@ const GroupPostSchema = new mongoose.Schema({
     text: String,
     createdAt: { type: Date, default: Date.now }
   }],
-  isApproved: { type: Boolean, default: false } // צריך אישור אדמין
+  isApproved: { type: Boolean, default: false } 
 }, { timestamps: true });
 
 const GroupPost = mongoose.model('GroupPost', GroupPostSchema);
-// Private Chat Schema
 const PrivateChatSchema = new mongoose.Schema({
   participants: [{
     userId: { type: String, required: true },
@@ -1826,7 +1665,6 @@ const PrivateChatSchema = new mongoose.Schema({
 
 const PrivateChat = mongoose.model('PrivateChat', PrivateChatSchema);
 
-// Message Schema
 const MessageSchema = new mongoose.Schema({
   chatId: { type: String, required: true },
   senderId: { type: String, required: true },
@@ -1840,7 +1678,6 @@ const MessageSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Message = mongoose.model('Message', MessageSchema);
-// Recipe schema - עם reference למשתמש במקום שכפול נתונים
 const RecipeSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: String,
@@ -1850,41 +1687,34 @@ const RecipeSchema = new mongoose.Schema({
   meatType: { type: String, default: 'Mixed' },
   prepTime: { type: Number, default: 0 },
   servings: { type: Number, default: 1 },
-  image: { type: String, maxlength: 10000000 }, // תמיכה בתמונות גדולות (Base64)
-  userId: { type: String, required: true }, // רק reference למשתמש
-  // הסרתי userName ו-userAvatar - נטען בזמן אמת
+  image: { type: String, maxlength: 10000000 }, 
+  userId: { type: String, required: true }, 
   likes: [{ type: String }],
   comments: [{
     userId: String,
-    userName: String, // זה נשאר לתגובות כי זה פחות קריטי
+    userName: String, 
     text: String,
     createdAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 
 const Recipe = mongoose.model('Recipe', RecipeSchema);
-// הוסף את הקוד הזה לשרת שלך אחרי ה-schemas הקיימים
-// הוסף את זה לשרת שלך (לפני ה-API routes):
 
-// הוסף את זה לשרת שלך (לפני ה-API routes):
-
-// Notification Schema
 const NotificationSchema = new mongoose.Schema({
   type: { 
     type: String, 
     required: true,
     enum: ['like', 'comment', 'follow', 'group_post', 'group_join_request', 'group_request_approved']
   },
-  fromUserId: { type: String, required: true }, // מי שיצר את ההתראה
-  toUserId: { type: String, required: true },   // למי ההתראה
+  fromUserId: { type: String, required: true }, 
+  toUserId: { type: String, required: true },   
   message: { type: String, required: true },
-  postId: { type: String }, // אם זה קשור לפוסט
+  postId: { type: String }, 
   postTitle: { type: String },
   postImage: { type: String },
-  groupId: { type: String }, // אם זה קשור לקבוצה
+  groupId: { type: String }, 
   groupName: { type: String },
   read: { type: Boolean, default: false },
-  // נתוני המשתמש שיצר את ההתראה (לשמירת נתונים)
   fromUser: {
     name: String,
     avatar: String
@@ -1895,10 +1725,9 @@ const Notification = mongoose.model('Notification', NotificationSchema);
 
 // ============ NOTIFICATION API ENDPOINTS ============
 
-// קבלת התראות של משתמש
 app.get('/api/notifications', async (req, res) => {
   try {
-    console.log('📬 Fetching notifications');
+    console.log('Fetching notifications');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -1910,13 +1739,13 @@ app.get('/api/notifications', async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    console.log('📥 Getting notifications for user:', userId);
+    console.log('Getting notifications for user:', userId);
 
     const notifications = await Notification.find({ 
       toUserId: userId 
     }).sort({ createdAt: -1 }).limit(50);
 
-    console.log(`✅ Found ${notifications.length} notifications`);
+    console.log(`Found ${notifications.length} notifications`);
     
     res.json({
       success: true,
@@ -1924,15 +1753,13 @@ app.get('/api/notifications', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get notifications error:', error);
     res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 });
 
-// סימון התראה כנקראה
 app.put('/api/notifications/:notificationId/read', async (req, res) => {
   try {
-    console.log('👁️ Marking notification as read:', req.params.notificationId);
+    console.log('Marking notification as read:', req.params.notificationId);
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -1948,22 +1775,20 @@ app.put('/api/notifications/:notificationId/read', async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    console.log('✅ Notification marked as read');
+    console.log('Notification marked as read');
     res.json({ 
       success: true,
       data: notification 
     });
 
   } catch (error) {
-    console.error('❌ Mark notification as read error:', error);
     res.status(500).json({ message: 'Failed to mark as read' });
   }
 });
 
-// סימון כל ההתראות כנקראו
 app.put('/api/notifications/mark-all-read', async (req, res) => {
   try {
-    console.log('👁️ Marking all notifications as read');
+    console.log('Marking all notifications as read');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -1980,19 +1805,17 @@ app.put('/api/notifications/mark-all-read', async (req, res) => {
       { read: true }
     );
 
-    console.log('✅ All notifications marked as read');
+    console.log('All notifications marked as read');
     res.json({ 
       success: true,
       message: 'All notifications marked as read'
     });
 
   } catch (error) {
-    console.error('❌ Mark all as read error:', error);
     res.status(500).json({ message: 'Failed to mark all as read' });
   }
 });
 
-// קבלת מספר התראות לא נקראו
 app.get('/api/notifications/unread-count', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2016,7 +1839,6 @@ app.get('/api/notifications/unread-count', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Get unread count error:', error);
     res.status(500).json({ 
       success: false,
       count: 0
@@ -2024,30 +1846,28 @@ app.get('/api/notifications/unread-count', async (req, res) => {
   }
 });
 
-// יצירת התראה (helper function)
 const createNotification = async (notificationData) => {
   try {
     if (!isMongoConnected()) {
-      console.log('❌ Database not connected, skipping notification');
+      console.log('Database not connected, skipping notification');
       return { success: false };
     }
 
     const notification = new Notification(notificationData);
     await notification.save();
     
-    console.log('✅ Notification created:', notification.type);
+    console.log('Notification created:', notification.type);
     return { success: true, data: notification };
   } catch (error) {
-    console.error('❌ Create notification error:', error);
     return { success: false };
   }
 };
-// Group Chat Schema
+
 const GroupChatSchema = new mongoose.Schema({
   name: { type: String, required: true, maxlength: 100 },
   description: { type: String, maxlength: 500 },
-  image: { type: String, maxlength: 10000000 }, // תמונת פרופיל של הצ'אט
-  adminId: { type: String, required: true }, // מנהל הצ'אט
+  image: { type: String, maxlength: 10000000 }, 
+  adminId: { type: String, required: true }, 
   participants: [{
     userId: { type: String, required: true },
     userName: { type: String, required: true },
@@ -2068,36 +1888,33 @@ const GroupChatSchema = new mongoose.Schema({
     default: {}
   },
   settings: {
-    allowMemberInvites: { type: Boolean, default: false }, // רק אדמין יכול להזמין
-    allowNameChange: { type: Boolean, default: true }, // חברים יכולים לשנות שם
+    allowMemberInvites: { type: Boolean, default: false }, 
+    allowNameChange: { type: Boolean, default: true }, 
     allowMemberLeave: { type: Boolean, default: true }
   }
 }, { timestamps: true });
 
 const GroupChat = mongoose.model('GroupChat', GroupChatSchema);
 
-// Group Chat Message Schema - מורחב מההודעות הרגילות
 const GroupChatMessageSchema = new mongoose.Schema({
   groupChatId: { type: String, required: true },
   senderId: { type: String, required: true },
   senderName: { type: String, required: true },
   senderAvatar: { type: String },
   content: { type: String, required: true },
-  messageType: { type: String, default: 'text' }, // text, image, file, system
+  messageType: { type: String, default: 'text' }, 
   readBy: [{
     userId: String,
     readAt: { type: Date, default: Date.now }
   }],
-  // הודעות מערכת (הצטרפות, עזיבה, שינוי שם וכו')
   isSystemMessage: { type: Boolean, default: false },
-  systemMessageType: { type: String } // user_joined, user_left, name_changed, admin_changed
+  systemMessageType: { type: String } 
 }, { timestamps: true });
 
 const GroupChatMessage = mongoose.model('GroupChatMessage', GroupChatMessageSchema);
 
 // ============ GROUP CHAT ROUTES ============
 
-// יצירת צ'אט קבוצתי חדש
 app.post('/api/group-chats', async (req, res) => {
   try {
     console.log('=== Creating Group Chat ===');
@@ -2122,13 +1939,11 @@ app.post('/api/group-chats', async (req, res) => {
 
     console.log('Creating group chat:', name, 'with', participants.length, 'participants');
 
-    // קבל פרטי היוצר
     const creator = await User.findById(creatorId);
     if (!creator) {
       return res.status(404).json({ message: 'Creator not found' });
     }
 
-    // בנה רשימת משתתפים עם היוצר כאדמין
     const chatParticipants = [{
       userId: creatorId,
       userName: creator.fullName,
@@ -2137,9 +1952,8 @@ app.post('/api/group-chats', async (req, res) => {
       joinedAt: new Date()
     }];
 
-    // הוסף משתתפים נוספים
     for (const participantId of participants) {
-      if (participantId !== creatorId) { // אל תוסיף את היוצר פעמיים
+      if (participantId !== creatorId) { 
         const user = await User.findById(participantId);
         if (user) {
           chatParticipants.push({
@@ -2153,7 +1967,6 @@ app.post('/api/group-chats', async (req, res) => {
       }
     }
 
-    // יצור את הצ'אט הקבוצתי
     const groupChat = new GroupChat({
       name: name.trim(),
       description: description || '',
@@ -2169,7 +1982,6 @@ app.post('/api/group-chats', async (req, res) => {
 
     await groupChat.save();
 
-    // צור הודעת מערכת ראשונה
     const systemMessage = new GroupChatMessage({
       groupChatId: groupChat._id,
       senderId: 'system',
@@ -2183,16 +1995,14 @@ app.post('/api/group-chats', async (req, res) => {
 
     await systemMessage.save();
 
-    console.log('✅ Group chat created successfully:', groupChat._id);
+    console.log('Group chat created successfully:', groupChat._id);
     res.status(201).json(groupChat);
 
   } catch (error) {
-    console.error('❌ Create group chat error:', error);
     res.status(500).json({ message: 'Failed to create group chat' });
   }
 });
 
-// קבלת כל הצ'אטים הקבוצתיים של המשתמש
 app.get('/api/group-chats/my', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2207,7 +2017,6 @@ app.get('/api/group-chats/my', async (req, res) => {
       'participants.userId': currentUserId
     }).sort({ updatedAt: -1 });
 
-    // העשר כל צ'אט עם מידע נוסף
     const enrichedChats = groupChats.map(chat => {
       const unreadCount = chat.unreadCount.get(currentUserId) || 0;
       const isAdmin = chat.adminId === currentUserId;
@@ -2217,7 +2026,7 @@ app.get('/api/group-chats/my', async (req, res) => {
         unreadCount,
         isAdmin,
         participantsCount: chat.participants.length,
-        type: 'group' // להבדיל מצ'אטים פרטיים
+        type: 'group' 
       };
     });
 
@@ -2225,12 +2034,10 @@ app.get('/api/group-chats/my', async (req, res) => {
     res.json(enrichedChats);
 
   } catch (error) {
-    console.error('Get my group chats error:', error);
     res.status(500).json({ message: 'Failed to fetch group chats' });
   }
 });
 
-// קבלת צ'אט קבוצתי ספציפי
 app.get('/api/group-chats/:chatId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2249,7 +2056,6 @@ app.get('/api/group-chats/:chatId', async (req, res) => {
       return res.status(404).json({ message: 'Group chat not found' });
     }
 
-    // בדוק שהמשתמש חלק מהצ'אט
     const isParticipant = groupChat.participants.some(p => p.userId === currentUserId);
     if (!isParticipant) {
       return res.status(403).json({ message: 'Not authorized to access this chat' });
@@ -2269,12 +2075,10 @@ app.get('/api/group-chats/:chatId', async (req, res) => {
     res.json(enrichedChat);
 
   } catch (error) {
-    console.error('Get group chat error:', error);
     res.status(500).json({ message: 'Failed to fetch group chat' });
   }
 });
 
-// קבלת הודעות צ'אט קבוצתי
 app.get('/api/group-chats/:chatId/messages', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2291,7 +2095,6 @@ app.get('/api/group-chats/:chatId/messages', async (req, res) => {
       return res.status(400).json({ message: 'Invalid chat ID' });
     }
 
-    // וודא שהמשתמש חלק מהצ'אט
     const groupChat = await GroupChat.findById(chatId);
     if (!groupChat) {
       return res.status(404).json({ message: 'Group chat not found' });
@@ -2310,19 +2113,16 @@ app.get('/api/group-chats/:chatId/messages', async (req, res) => {
       .limit(limit)
       .lean();
 
-    // החזר בסדר הנכון (ישן לחדש)
     const orderedMessages = messages.reverse();
     console.log(`Found ${orderedMessages.length} messages`);
     
     res.json(orderedMessages);
 
   } catch (error) {
-    console.error('Get group chat messages error:', error);
     res.status(500).json({ message: 'Failed to fetch messages' });
   }
 });
 
-// שליחת הודעה לצ'אט קבוצתי
 app.post('/api/group-chats/:chatId/messages', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2341,7 +2141,6 @@ app.post('/api/group-chats/:chatId/messages', async (req, res) => {
       return res.status(400).json({ message: 'Invalid chat ID' });
     }
 
-    // וודא שהמשתמש חלק מהצ'אט
     const groupChat = await GroupChat.findById(chatId);
     if (!groupChat) {
       return res.status(404).json({ message: 'Group chat not found' });
@@ -2354,7 +2153,6 @@ app.post('/api/group-chats/:chatId/messages', async (req, res) => {
 
     console.log(`Sending message to group chat ${chatId} from ${participant.userName}`);
 
-    // צור הודעה חדשה
     const message = new GroupChatMessage({
       groupChatId: chatId,
       senderId: currentUserId,
@@ -2362,12 +2160,11 @@ app.post('/api/group-chats/:chatId/messages', async (req, res) => {
       senderAvatar: participant.userAvatar,
       content: content.trim(),
       messageType,
-      readBy: [{ userId: currentUserId }] // השולח כבר "קרא" את ההודעה
+      readBy: [{ userId: currentUserId }] 
     });
 
     await message.save();
 
-    // עדכן את הצ'אט עם ההודעה האחרונה
     groupChat.lastMessage = {
       senderId: currentUserId,
       senderName: participant.userName,
@@ -2376,7 +2173,6 @@ app.post('/api/group-chats/:chatId/messages', async (req, res) => {
       createdAt: message.createdAt
     };
 
-    // עדכן מונה הודעות לא נקראו עבור שאר המשתתפים
     groupChat.participants.forEach(p => {
       if (p.userId !== currentUserId) {
         const currentCount = groupChat.unreadCount.get(p.userId) || 0;
@@ -2390,12 +2186,10 @@ app.post('/api/group-chats/:chatId/messages', async (req, res) => {
     res.status(201).json(message);
 
   } catch (error) {
-    console.error('Send group chat message error:', error);
     res.status(500).json({ message: 'Failed to send message' });
   }
 });
 
-// הוספת משתתף לצ'אט קבוצתי (רק אדמין)
 app.post('/api/group-chats/:chatId/participants', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2403,7 +2197,7 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
     }
 
     const { chatId } = req.params;
-    const { userIds } = req.body; // array של user IDs
+    const { userIds } = req.body; 
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
@@ -2415,7 +2209,6 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
       return res.status(404).json({ message: 'Group chat not found' });
     }
 
-    // בדוק שהמשתמש הוא אדמין
     if (groupChat.adminId !== currentUserId) {
       return res.status(403).json({ message: 'Only admin can add participants' });
     }
@@ -2424,7 +2217,6 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
     const addedUsers = [];
 
     for (const userId of userIds) {
-      // בדוק שהמשתמש לא כבר בצ'אט
       const isAlreadyParticipant = groupChat.participants.some(p => p.userId === userId);
       if (isAlreadyParticipant) {
         continue;
@@ -2443,7 +2235,6 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
         newParticipants.push(newParticipant);
         addedUsers.push(user.fullName);
         
-        // הוסף למונה הודעות לא נקראו
         groupChat.unreadCount.set(userId, 0);
       }
     }
@@ -2452,11 +2243,9 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
       return res.status(400).json({ message: 'No new participants to add' });
     }
 
-    // הוסף את המשתתפים החדשים
     groupChat.participants.push(...newParticipants);
     await groupChat.save();
 
-    // צור הודעת מערכת
     const admin = groupChat.participants.find(p => p.userId === currentUserId);
     const systemMessage = new GroupChatMessage({
       groupChatId: chatId,
@@ -2471,19 +2260,17 @@ app.post('/api/group-chats/:chatId/participants', async (req, res) => {
 
     await systemMessage.save();
 
-    console.log(`✅ Added ${newParticipants.length} participants to group chat`);
+    console.log(`Added ${newParticipants.length} participants to group chat`);
     res.json({ 
       message: `Added ${newParticipants.length} participants`,
       addedParticipants: newParticipants
     });
 
   } catch (error) {
-    console.error('Add participants error:', error);
     res.status(500).json({ message: 'Failed to add participants' });
   }
 });
 
-// הסרת משתתף מצ'אט קבוצתי (רק אדמין)
 app.delete('/api/group-chats/:chatId/participants/:userId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2498,17 +2285,14 @@ app.delete('/api/group-chats/:chatId/participants/:userId', async (req, res) => 
       return res.status(404).json({ message: 'Group chat not found' });
     }
 
-    // בדוק שהמשתמש הוא אדמין
     if (groupChat.adminId !== currentUserId) {
       return res.status(403).json({ message: 'Only admin can remove participants' });
     }
 
-    // אל תתן לאדמין להסיר את עצמו
     if (userId === currentUserId) {
       return res.status(400).json({ message: 'Admin cannot remove themselves. Use leave group instead.' });
     }
 
-    // מצא את המשתתף
     const participantIndex = groupChat.participants.findIndex(p => p.userId === userId);
     if (participantIndex === -1) {
       return res.status(404).json({ message: 'Participant not found' });
@@ -2516,12 +2300,10 @@ app.delete('/api/group-chats/:chatId/participants/:userId', async (req, res) => 
 
     const removedParticipant = groupChat.participants[participantIndex];
     
-    // הסר את המשתתף
     groupChat.participants.splice(participantIndex, 1);
     groupChat.unreadCount.delete(userId);
     await groupChat.save();
 
-    // צור הודעת מערכת
     const admin = groupChat.participants.find(p => p.userId === currentUserId);
     const systemMessage = new GroupChatMessage({
       groupChatId: chatId,
@@ -2536,19 +2318,17 @@ app.delete('/api/group-chats/:chatId/participants/:userId', async (req, res) => 
 
     await systemMessage.save();
 
-    console.log(`✅ Removed participant ${removedParticipant.userName} from group chat`);
+    console.log(`Removed participant ${removedParticipant.userName} from group chat`);
     res.json({ 
       message: 'Participant removed successfully',
       removedParticipant: removedParticipant.userName
     });
 
   } catch (error) {
-    console.error('Remove participant error:', error);
     res.status(500).json({ message: 'Failed to remove participant' });
   }
 });
 
-// עזיבת צ'אט קבוצתי
 app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2563,7 +2343,6 @@ app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
       return res.status(404).json({ message: 'Group chat not found' });
     }
 
-    // מצא את המשתתף
     const participantIndex = groupChat.participants.findIndex(p => p.userId === currentUserId);
     if (participantIndex === -1) {
       return res.status(404).json({ message: 'Not a participant in this chat' });
@@ -2572,11 +2351,9 @@ app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
     const leavingParticipant = groupChat.participants[participantIndex];
     const isAdmin = groupChat.adminId === currentUserId;
 
-    // הסר את המשתתף
     groupChat.participants.splice(participantIndex, 1);
     groupChat.unreadCount.delete(currentUserId);
 
-    // אם האדמין עוזב, הקצה אדמין חדש רנדומלי
     if (isAdmin && groupChat.participants.length > 0) {
       const randomIndex = Math.floor(Math.random() * groupChat.participants.length);
       const newAdmin = groupChat.participants[randomIndex];
@@ -2586,7 +2363,6 @@ app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
 
       console.log(`Admin left, new admin is: ${newAdmin.userName}`);
 
-      // צור הודעת מערכת על שינוי אדמין
       const adminChangeMessage = new GroupChatMessage({
         groupChatId: chatId,
         senderId: 'system',
@@ -2601,18 +2377,16 @@ app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
       await adminChangeMessage.save();
     }
 
-    // אם זה היה החבר האחרון, מחק את הצ'אט
     if (groupChat.participants.length === 0) {
       await GroupChat.findByIdAndDelete(chatId);
       await GroupChatMessage.deleteMany({ groupChatId: chatId });
       
-      console.log('✅ Group chat deleted - no participants left');
+      console.log('Group chat deleted - no participants left');
       return res.json({ message: 'Left group chat successfully. Group was deleted.' });
     }
 
     await groupChat.save();
 
-    // צור הודעת מערכת על עזיבה
     const systemMessage = new GroupChatMessage({
       groupChatId: chatId,
       senderId: 'system',
@@ -2626,18 +2400,14 @@ app.delete('/api/group-chats/:chatId/leave', async (req, res) => {
 
     await systemMessage.save();
 
-    console.log(`✅ User ${leavingParticipant.userName} left group chat`);
+    console.log(`User ${leavingParticipant.userName} left group chat`);
     res.json({ message: 'Left group chat successfully' });
 
   } catch (error) {
-    console.error('Leave group chat error:', error);
     res.status(500).json({ message: 'Failed to leave group chat' });
   }
 });
 
-// החלף את הendpoint הזה בשרת שלך:
-
-// עדכון שם/תיאור/תמונה/הגדרות צ'אט קבוצתי
 app.put('/api/group-chats/:chatId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2656,27 +2426,25 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
     
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
 
-    console.log('🔄 Updating group chat:', chatId);
-    console.log('👤 Requested by:', currentUserId);
-    console.log('📝 Update fields:', Object.keys(req.body));
+    console.log('Updating group chat:', chatId);
+    console.log('Requested by:', currentUserId);
+    console.log('Update fields:', Object.keys(req.body));
 
     const groupChat = await GroupChat.findById(chatId);
     if (!groupChat) {
-      console.log('❌ Group chat not found');
+      console.log('Group chat not found');
       return res.status(404).json({ message: 'Group chat not found' });
     }
 
-    // בדוק שהמשתמש חלק מהצ'אט
     const participant = groupChat.participants.find(p => p.userId === currentUserId);
     if (!participant) {
-      console.log('❌ User not authorized - not a participant');
+      console.log('User not authorized - not a participant');
       return res.status(403).json({ message: 'Not authorized to modify this chat' });
     }
 
     const isAdmin = groupChat.adminId === currentUserId;
-    console.log('🔐 User permissions:', { isAdmin, participantRole: participant.role });
+    console.log('User permissions:', { isAdmin, participantRole: participant.role });
 
-    // אתחל הגדרות אם לא קיימות
     if (!groupChat.settings) {
       groupChat.settings = {
         allowMemberInvites: false,
@@ -2689,7 +2457,6 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
     const oldName = groupChat.name;
     let changes = [];
 
-    // ✅ עדכון שם קבוצה
     if (name && name.trim() !== groupChat.name) {
       const canChangeName = groupChat.settings.allowNameChange || isAdmin;
       if (!canChangeName) {
@@ -2698,63 +2465,57 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
       }
       groupChat.name = name.trim();
       changes.push(`name changed from "${oldName}" to "${name.trim()}"`);
-      console.log('✅ Name updated:', name.trim());
+      console.log('Name updated:', name.trim());
     }
 
-    // ✅ עדכון תיאור קבוצה
     if (description !== undefined && description !== groupChat.description) {
       const canChangeDescription = groupChat.settings.allowNameChange || isAdmin;
       if (!canChangeDescription) {
-        console.log('❌ Permission denied for description change');
+        console.log('Permission denied for description change');
         return res.status(403).json({ message: 'Only admin can change group description when member editing is disabled' });
       }
       groupChat.description = description;
       changes.push('description updated');
-      console.log('✅ Description updated');
+      console.log('Description updated');
     }
 
-    // ✅ עדכון תמונת קבוצה
     if (image !== undefined && image !== groupChat.image) {
       const canChangeImage = groupChat.settings.allowImageChange !== false || isAdmin;
       if (!canChangeImage) {
-        console.log('❌ Permission denied for image change');
+        console.log('Permission denied for image change');
         return res.status(403).json({ message: 'Only admin can change group image when member editing is disabled' });
       }
       groupChat.image = image;
       changes.push(image ? 'image updated' : 'image removed');
-      console.log('✅ Image updated:', image ? 'new image set' : 'image removed');
+      console.log('Image updated:', image ? 'new image set' : 'image removed');
     }
 
-    // ✅ עדכון הגדרות (רק אדמין)
     if (allowNameChange !== undefined && isAdmin) {
       groupChat.settings.allowNameChange = allowNameChange;
       changes.push(`member name editing ${allowNameChange ? 'enabled' : 'disabled'}`);
-      console.log('✅ allowNameChange updated:', allowNameChange);
+      console.log('allowNameChange updated:', allowNameChange);
     }
 
     if (allowImageChange !== undefined && isAdmin) {
       groupChat.settings.allowImageChange = allowImageChange;
       changes.push(`member image editing ${allowImageChange ? 'enabled' : 'disabled'}`);
-      console.log('✅ allowImageChange updated:', allowImageChange);
+      console.log('allowImageChange updated:', allowImageChange);
     }
 
     if (allowMemberInvites !== undefined && isAdmin) {
       groupChat.settings.allowMemberInvites = allowMemberInvites;
       changes.push(`member invites ${allowMemberInvites ? 'enabled' : 'disabled'}`);
-      console.log('✅ allowMemberInvites updated:', allowMemberInvites);
+      console.log('allowMemberInvites updated:', allowMemberInvites);
     }
 
-    // בדיקה שיש שינויים
     if (changes.length === 0) {
-      console.log('⚠️ No changes to apply');
+      console.log('No changes to apply');
       return res.status(400).json({ message: 'No changes provided' });
     }
 
-    // שמירת השינויים
     await groupChat.save();
-    console.log('💾 Group chat saved successfully');
+    console.log('Group chat saved successfully');
 
-    // יצירת הודעת מערכת על השינויים
     try {
       const systemMessage = new GroupChatMessage({
         groupChatId: chatId,
@@ -2768,12 +2529,12 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
       });
 
       await systemMessage.save();
-      console.log('📨 System message created');
+      console.log('System message created');
     } catch (msgError) {
-      console.warn('⚠️ Failed to create system message:', msgError.message);
+      console.warn('Failed to create system message:', msgError.message);
     }
 
-    console.log(`✅ Group chat updated successfully: ${changes.join(', ')}`);
+    console.log(`Group chat updated successfully: ${changes.join(', ')}`);
     
     res.json({ 
       message: 'Group chat updated successfully',
@@ -2785,7 +2546,6 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Update group chat error:', error);
     res.status(500).json({ 
       message: 'Failed to update group chat',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -2793,7 +2553,6 @@ app.put('/api/group-chats/:chatId', async (req, res) => {
   }
 });
 
-// סימון הודעות כנקראו בצ'אט קבוצתי
 app.put('/api/group-chats/:chatId/read', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2809,14 +2568,12 @@ app.put('/api/group-chats/:chatId/read', async (req, res) => {
 
     console.log(`Marking group chat messages as read for user ${currentUserId} in chat ${chatId}`);
 
-    // עדכן את מונה ההודעות הלא נקראו בצ'אט
     const groupChat = await GroupChat.findById(chatId);
     if (groupChat) {
       groupChat.unreadCount.set(currentUserId, 0);
       await groupChat.save();
     }
 
-    // עדכן את ההודעות כנקראו
     await GroupChatMessage.updateMany(
       { 
         groupChatId: chatId, 
@@ -2836,12 +2593,10 @@ app.put('/api/group-chats/:chatId/read', async (req, res) => {
     res.json({ message: 'Messages marked as read' });
 
   } catch (error) {
-    console.error('Mark group chat as read error:', error);
     res.status(500).json({ message: 'Failed to mark as read' });
   }
 });
 
-// קבלת משתמשים זמינים להזמנה (עוקבים + צ'אטים פרטיים)
 app.get('/api/group-chats/available-users', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2849,18 +2604,15 @@ app.get('/api/group-chats/available-users', async (req, res) => {
     }
 
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
-    const { chatId } = req.query; // לבדוק מי כבר בצ'אט
+    const { chatId } = req.query; 
 
-    // קבל את המשתמש הנוכחי
     const currentUser = await User.findById(currentUserId);
     if (!currentUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // קבל רשימת עוקבים
     const following = currentUser.following || [];
 
-    // קבל משתמשים מצ'אטים פרטיים
     const privateChats = await PrivateChat.find({
       'participants.userId': currentUserId
     });
@@ -2874,11 +2626,9 @@ app.get('/api/group-chats/available-users', async (req, res) => {
       });
     });
 
-    // שלב את כל המשתמשים הזמינים
     const availableUserIds = [...new Set([...following, ...Array.from(chatPartners)])];
 
-    // אם יש chatId, הסר משתמשים שכבר בצ'אט
-    let excludedUsers = [currentUserId]; // תמיד הסר את עצמך
+    let excludedUsers = [currentUserId]; 
     
     if (chatId && mongoose.Types.ObjectId.isValid(chatId)) {
       const existingChat = await GroupChat.findById(chatId);
@@ -2887,7 +2637,6 @@ app.get('/api/group-chats/available-users', async (req, res) => {
       }
     }
 
-    // קבל פרטי המשתמשים
     const availableUsers = await Promise.all(
       availableUserIds
         .filter(userId => !excludedUsers.includes(userId))
@@ -2907,35 +2656,29 @@ app.get('/api/group-chats/available-users', async (req, res) => {
             }
             return null;
           } catch (error) {
-            console.error('Error fetching user:', userId, error);
             return null;
           }
         })
     );
 
-    // סנן null values
     const validUsers = availableUsers.filter(user => user !== null);
 
-    // מיין לפי שם
     validUsers.sort((a, b) => a.userName.localeCompare(b.userName));
 
     console.log(`Found ${validUsers.length} available users for invitation`);
     res.json(validUsers);
 
   } catch (error) {
-    console.error('Get available users error:', error);
     res.status(500).json({ message: 'Failed to get available users' });
   }
 });
 
-console.log('✅ Group Chat endpoints added successfully');
+console.log('Group Chat endpoints added successfully');
 
-// Helper function לבדיקה אם מונגו זמין
 const isMongoConnected = () => {
   return mongoose.connection.readyState === 1;
 };
 
-// Auth routes
 app.post('/api/auth/register', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -2944,7 +2687,6 @@ app.post('/api/auth/register', async (req, res) => {
 
     const { fullName, email, password } = req.body;
     
-    // בדיקת נתונים נדרשים
     if (!fullName || !email || !password) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -2965,7 +2707,6 @@ app.post('/api/auth/register', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
     if (error.code === 11000) {
       res.status(400).json({ message: 'Email already exists' });
     } else {
@@ -2999,7 +2740,6 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ message: 'Login failed' });
   }
 });
@@ -3008,7 +2748,6 @@ app.post('/api/auth/forgotpassword', async (req, res) => {
   res.json({ message: 'Password reset instructions sent' });
 });
 
-// Avatar upload endpoint
 app.post('/api/upload/avatar', upload.single('avatar'), async (req, res) => {
   try {
     console.log('=== Avatar Upload Debug ===');
@@ -3031,40 +2770,32 @@ app.post('/api/upload/avatar', upload.single('avatar'), async (req, res) => {
       size: req.file.size
     });
 
-    // בדיקה שזה קובץ תמונה
     if (!req.file.mimetype.startsWith('image/')) {
       console.log('ERROR: File is not an image');
       return res.status(400).json({ error: 'Only image files are allowed' });
     }
 
-    // בדיקת גודל תמונה (5MB מקסימום)
     if (req.file.size > 5 * 1024 * 1024) {
       console.log('ERROR: File too large');
       return res.status(413).json({ error: 'Image too large - maximum 5MB allowed' });
     }
 
-    // המרה ל-Base64 (כמו בפוסטים)
     const base64Image = req.file.buffer.toString('base64');
     const imageData = `data:${req.file.mimetype};base64,${base64Image}`;
     
     console.log('Avatar converted to base64, length:', imageData.length);
     
-    // החזרת התמונה כ-Base64 - הלקוח ישמור אותה בפרופיל המשתמש
     res.json({
       success: true,
-      url: imageData, // Base64 string לשמירה בפרופיל
+      url: imageData, 
       filename: req.file.originalname
     });
     
   } catch (error) {
-    console.error('=== AVATAR UPLOAD ERROR ===');
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
     res.status(500).json({ error: 'Failed to upload avatar' });
   }
 });
 
-// Alternative avatar upload endpoints (for compatibility)
 app.post('/api/user/upload-avatar', upload.single('avatar'), async (req, res) => {
   try {
     console.log('Avatar upload request received (user endpoint)');
@@ -3095,12 +2826,10 @@ app.post('/api/user/upload-avatar', upload.single('avatar'), async (req, res) =>
     });
     
   } catch (error) {
-    console.error('Avatar upload error:', error);
     res.status(500).json({ error: 'Failed to upload avatar' });
   }
 });
 
-// Another alternative endpoint
 app.post('/api/auth/avatar', upload.single('avatar'), async (req, res) => {
   try {
     console.log('Avatar upload request received (auth endpoint)');
@@ -3131,13 +2860,11 @@ app.post('/api/auth/avatar', upload.single('avatar'), async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Avatar upload error:', error);
     res.status(500).json({ error: 'Failed to upload avatar' });
   }
 });
 
 // ============ FOLLOW SYSTEM ============
-// Follow a user
 app.post('/api/users/:userId/follow', async (req, res) => {
   try {
     console.log('👥 Following user...');
@@ -3181,7 +2908,6 @@ app.post('/api/users/:userId/follow', async (req, res) => {
       follower.save()
     ]);
 
-    // 🆕 יצירת התראה
     await createNotification({
       type: 'follow',
       fromUserId: followerId,
@@ -3193,7 +2919,7 @@ app.post('/api/users/:userId/follow', async (req, res) => {
       }
     });
 
-    console.log('✅ User followed successfully');
+    console.log('User followed successfully');
     res.json({ 
       message: 'User followed successfully',
       followersCount: userToFollow.followers.length,
@@ -3201,12 +2927,10 @@ app.post('/api/users/:userId/follow', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Follow user error:', error);
     res.status(500).json({ message: 'Failed to follow user' });
   }
 });
 
-// Unfollow a user
 app.delete('/api/users/:userId/follow', async (req, res) => {
   try {
     console.log('👥 Unfollowing user...');
@@ -3215,14 +2939,13 @@ app.delete('/api/users/:userId/follow', async (req, res) => {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    const { userId } = req.params; // המשתמש שרוצים להפסיק לעקוב אחריו
-    const { followerId } = req.body; // המשתמש שמפסיק לעקוב
+    const { userId } = req.params; 
+    const { followerId } = req.body; 
 
     if (!mongoose.Types.ObjectId.isValid(userId) || !followerId) {
       return res.status(400).json({ message: 'Invalid user ID or follower ID' });
     }
 
-    // בדיקה שהמשתמשים קיימים
     const [userToUnfollow, follower] = await Promise.all([
       User.findById(userId),
       User.findById(followerId)
@@ -3232,12 +2955,10 @@ app.delete('/api/users/:userId/follow', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // בדיקה שכבר עוקב
     if (!userToUnfollow.followers || !userToUnfollow.followers.includes(followerId)) {
       return res.status(400).json({ message: 'Not following this user' });
     }
 
-    // הסרת המעקב
     userToUnfollow.followers = userToUnfollow.followers.filter(id => id !== followerId);
     follower.following = follower.following ? follower.following.filter(id => id !== userId) : [];
 
@@ -3246,7 +2967,7 @@ app.delete('/api/users/:userId/follow', async (req, res) => {
       follower.save()
     ]);
 
-    console.log('✅ User unfollowed successfully');
+    console.log('User unfollowed successfully');
     res.json({ 
       message: 'User unfollowed successfully',
       followersCount: userToUnfollow.followers.length,
@@ -3254,12 +2975,10 @@ app.delete('/api/users/:userId/follow', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Unfollow user error:', error);
     res.status(500).json({ message: 'Failed to unfollow user' });
   }
 });
 
-// Get user's followers count and following status
 app.get('/api/users/:userId/follow-status/:viewerId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -3288,16 +3007,14 @@ app.get('/api/users/:userId/follow-status/:viewerId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get follow status error:', error);
     res.status(500).json({ message: 'Failed to get follow status' });
   }
 });
 
 // ============ EDIT POST ENDPOINTS - FIXED ============
-// Edit regular recipe
 app.put('/api/recipes/:id', upload.any(), async (req, res) => {
   try {
-    console.log('✏️ Editing recipe...');
+    console.log('Editing recipe...');
     console.log('Recipe ID:', req.params.id);
     console.log('Form data:', req.body);
     
@@ -3308,31 +3025,27 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
     const { id } = req.params;
     const formData = req.body;
 
-    // בדיקת תקינות ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.log('❌ Invalid recipe ID:', id);
+      console.log('Invalid recipe ID:', id);
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
 
-    // מציאת הפוסט
     const recipe = await Recipe.findById(id);
     if (!recipe) {
-      console.log('❌ Recipe not found:', id);
+      console.log('Recipe not found:', id);
       return res.status(404).json({ message: 'Recipe not found' });
     }
 
-    console.log('📋 Found recipe:', recipe.title);
-    console.log('👤 Recipe owner:', recipe.userId);
-    console.log('👤 Editor user:', formData.userId);
+    console.log('Found recipe:', recipe.title);
+    console.log('Recipe owner:', recipe.userId);
+    console.log('Editor user:', formData.userId);
 
-    // בדיקת הרשאות - רק יוצר הפוסט יכול לערוך (תיקון השוואה)
     if (recipe.userId.toString() !== formData.userId.toString()) {
-      console.log('❌ Permission denied - user mismatch');
+      console.log('Permission denied - user mismatch');
       return res.status(403).json({ message: 'Permission denied' });
     }
 
-    // טיפול בתמונה חדשה
-    let imageData = recipe.image; // שמור את התמונה הקיימת כברירת מחדל
+    let imageData = recipe.image; 
 
     if (req.files && req.files.length > 0) {
       const imageFile = req.files.find(file => 
@@ -3341,21 +3054,19 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
       );
       
       if (imageFile) {
-        console.log('📷 New image uploaded, size:', imageFile.size);
+        console.log('New image uploaded, size:', imageFile.size);
         const base64Image = imageFile.buffer.toString('base64');
         imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
       }
     } else if (formData.image && formData.image !== recipe.image) {
-      console.log('📷 Image updated from form data');
+      console.log('Image updated from form data');
       imageData = formData.image;
     }
 
-    // וידוא שהנתונים החובה קיימים
     if (!formData.title || formData.title.trim().length === 0) {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    // עדכון הנתונים עם validations
     const updateData = {
       title: formData.title.trim(),
       description: formData.description || recipe.description,
@@ -3369,7 +3080,7 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
       updatedAt: new Date()
     };
 
-    console.log('🔄 Updating recipe with data:', {
+    console.log('Updating recipe with data:', {
       title: updateData.title,
       category: updateData.category,
       prepTime: updateData.prepTime,
@@ -3378,15 +3089,14 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
 
     const updatedRecipe = await Recipe.findByIdAndUpdate(id, updateData, { 
       new: true,
-      runValidators: true // הפעל validations של המונגו
+      runValidators: true 
     });
     
     if (!updatedRecipe) {
-      console.log('❌ Failed to update recipe');
+      console.log('Failed to update recipe');
       return res.status(500).json({ message: 'Failed to update recipe' });
     }
 
-    // החזרת המתכון עם נתוני המשתמש
     const user = await User.findById(updatedRecipe.userId);
     const enrichedRecipe = {
       ...updatedRecipe.toObject(),
@@ -3395,7 +3105,7 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
       userBio: user ? user.bio : null
     };
 
-    console.log('✅ Recipe edited successfully:', enrichedRecipe.title);
+    console.log('Recipe edited successfully:', enrichedRecipe.title);
     res.json({
       success: true,
       data: enrichedRecipe,
@@ -3403,9 +3113,6 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Edit recipe error:', error);
-    
-    // מידע מפורט יותר על השגיאה
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
@@ -3421,10 +3128,9 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
   }
 });
 
-// Edit group post
 app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => {
   try {
-    console.log('✏️ Editing group post...');
+    console.log('Editing group post...');
     console.log('Group ID:', req.params.groupId);
     console.log('Post ID:', req.params.postId);
     console.log('Form data:', req.body);
@@ -3436,57 +3142,51 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
     const { groupId, postId } = req.params;
     const formData = req.body;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(postId)) {
-      console.log('❌ Invalid IDs - Group:', groupId, 'Post:', postId);
+      console.log('Invalid IDs - Group:', groupId, 'Post:', postId);
       return res.status(400).json({ message: 'Invalid group or post ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
-      console.log('❌ Group not found:', groupId);
+      console.log('Group not found:', groupId);
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // מציאת הפוסט
     const post = await GroupPost.findById(postId);
     if (!post) {
-      console.log('❌ Post not found:', postId);
+      console.log('Post not found:', postId);
       return res.status(404).json({ message: 'Post not found' });
     }
 
-    console.log('📋 Found post:', post.title);
-    console.log('🏠 Post group:', post.groupId);
-    console.log('👤 Post owner:', post.userId);
-    console.log('👤 Editor user:', formData.userId);
+    console.log('Found post:', post.title);
+    console.log('Post group:', post.groupId);
+    console.log('Post owner:', post.userId);
+    console.log('Editor user:', formData.userId);
 
-    // בדיקה שהפוסט שייך לקבוצה (תיקון השוואה)
     if (post.groupId.toString() !== groupId.toString()) {
-      console.log('❌ Post does not belong to group');
+      console.log('Post does not belong to group');
       return res.status(400).json({ message: 'Post does not belong to this group' });
     }
 
-    // בדיקת הרשאות - יוצר הפוסט או אדמין של הקבוצה (תיקון השוואות)
     const isPostOwner = post.userId.toString() === formData.userId.toString();
     const isGroupAdmin = group.members.some(member => 
       member.userId.toString() === formData.userId.toString() && member.role === 'admin'
     );
     const isGroupCreator = group.creatorId.toString() === formData.userId.toString();
 
-    console.log('🔐 Permissions check:', {
+    console.log('Permissions check:', {
       isPostOwner,
       isGroupAdmin,
       isGroupCreator
     });
 
     if (!isPostOwner && !isGroupAdmin && !isGroupCreator) {
-      console.log('❌ Permission denied');
+      console.log('Permission denied');
       return res.status(403).json({ message: 'Permission denied' });
     }
 
-    // טיפול בתמונה חדשה
-    let imageData = post.image; // שמור את התמונה הקיימת כברירת מחדל
+    let imageData = post.image; 
     
     if (req.files && req.files.length > 0) {
       const imageFile = req.files.find(file => 
@@ -3504,12 +3204,10 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
       imageData = formData.image;
     }
 
-    // וידוא שהנתונים החובה קיימים
     if (!formData.title || formData.title.trim().length === 0) {
       return res.status(400).json({ message: 'Title is required' });
     }
 
-    // עדכון הנתונים
     const updateData = {
       title: formData.title.trim(),
       description: formData.description || post.description,
@@ -3523,7 +3221,7 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
       updatedAt: new Date()
     };
 
-    console.log('🔄 Updating group post with data:', {
+    console.log('Updating group post with data:', {
       title: updateData.title,
       category: updateData.category,
       prepTime: updateData.prepTime,
@@ -3532,15 +3230,14 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
 
     const updatedPost = await GroupPost.findByIdAndUpdate(postId, updateData, { 
       new: true,
-      runValidators: true // הפעל validations של המונגו
+      runValidators: true 
     });
     
     if (!updatedPost) {
-      console.log('❌ Failed to update group post');
+      console.log('Failed to update group post');
       return res.status(500).json({ message: 'Failed to update group post' });
     }
 
-    // החזרת הפוסט עם נתוני המשתמש והקבוצה
     const user = await User.findById(updatedPost.userId);
     const enrichedPost = {
       ...updatedPost.toObject(),
@@ -3550,7 +3247,7 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
       groupName: group.name
     };
 
-    console.log('✅ Group post edited successfully:', enrichedPost.title);
+    console.log('Group post edited successfully:', enrichedPost.title);
     res.json({
       success: true,
       data: enrichedPost,
@@ -3558,9 +3255,6 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
     });
 
   } catch (error) {
-    console.error('❌ Edit group post error:', error);
-    
-    // מידע מפורט יותר על השגיאה
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
@@ -3576,9 +3270,6 @@ app.put('/api/groups/:groupId/posts/:postId', upload.any(), async (req, res) => 
   }
 });
 
-// Profile routes - עדכון פרופיל משתמש (מספר endpoints לתאימות)
-
-// Helper function לעדכון פרופיל
 const updateUserProfile = async (req, res) => {
   try {
     console.log('=== Profile Update Debug ===');
@@ -3590,20 +3281,18 @@ const updateUserProfile = async (req, res) => {
     }
 
     const { userId, id, fullName, email, avatar, bio } = req.body;
-    const userIdToUse = userId || id; // נסה שניהם
+    const userIdToUse = userId || id; 
     
     if (!userIdToUse) {
       console.log('ERROR: No user ID provided');
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    // בדיקת תקינות ObjectId
     if (!mongoose.Types.ObjectId.isValid(userIdToUse)) {
       console.log('ERROR: Invalid user ID:', userIdToUse);
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    // חיפוש המשתמש
     const user = await User.findById(userIdToUse);
     if (!user) {
       console.log('ERROR: User not found:', userIdToUse);
@@ -3612,11 +3301,10 @@ const updateUserProfile = async (req, res) => {
 
     console.log('Found user:', user.email);
 
-    // עדכון הנתונים
     if (fullName !== undefined) user.fullName = fullName;
     if (email !== undefined) user.email = email;
     if (bio !== undefined) user.bio = bio;
-    if (avatar !== undefined) user.avatar = avatar; // שמירת ה-Base64 של התמונה
+    if (avatar !== undefined) user.avatar = avatar; 
 
     console.log('Updating user profile:', {
       userId: userIdToUse,
@@ -3627,7 +3315,6 @@ const updateUserProfile = async (req, res) => {
       avatarLength: avatar ? avatar.length : 0
     });
 
-    // שמירה
     await user.save();
     
     console.log('Profile updated successfully');
@@ -3644,11 +3331,6 @@ const updateUserProfile = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('=== PROFILE UPDATE ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
-    
     if (error.code === 11000) {
       res.status(400).json({ message: 'Email already exists' });
     } else if (error.name === 'ValidationError') {
@@ -3660,7 +3342,6 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-// Multiple endpoints for profile update (for compatibility)
 app.put('/api/user/profile', updateUserProfile);
 app.patch('/api/user/profile', updateUserProfile);
 app.put('/api/auth/profile', updateUserProfile);
@@ -3668,7 +3349,6 @@ app.patch('/api/auth/profile', updateUserProfile);
 app.put('/api/auth/update-profile', updateUserProfile);
 app.patch('/api/auth/update-profile', updateUserProfile);
 
-// Change password endpoint
 app.put('/api/auth/change-password', async (req, res) => {
   try {
     console.log('=== Change Password Debug ===');
@@ -3680,17 +3360,14 @@ app.put('/api/auth/change-password', async (req, res) => {
 
     const { userId, currentPassword, newPassword } = req.body;
     
-    // בדיקת נתונים נדרשים
     if (!userId || !currentPassword || !newPassword) {
       return res.status(400).json({ message: 'User ID, current password and new password are required' });
     }
 
-    // בדיקת תקינות ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    // חיפוש המשתמש
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -3698,13 +3375,11 @@ app.put('/api/auth/change-password', async (req, res) => {
 
     console.log('Found user:', user.email);
 
-    // בדיקת הסיסמה הנוכחית
     if (user.password !== currentPassword) {
       console.log('Current password does not match');
       return res.status(400).json({ message: 'Current password is incorrect' });
     }
 
-    // בדיקת validation של הסיסמה החדשה (כמו בקומפוננטה)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({ 
@@ -3712,7 +3387,6 @@ app.put('/api/auth/change-password', async (req, res) => {
       });
     }
 
-    // עדכון הסיסמה
     user.password = newPassword;
     await user.save();
     
@@ -3723,18 +3397,11 @@ app.put('/api/auth/change-password', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('=== CHANGE PASSWORD ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
-    
     res.status(500).json({ message: 'Failed to change password' });
   }
 });
 
-// Alternative endpoints for password change
 app.patch('/api/auth/change-password', async (req, res) => {
-  // Same logic as PUT endpoint
   try {
     console.log('=== Change Password Debug (PATCH) ===');
     
@@ -3776,13 +3443,11 @@ app.patch('/api/auth/change-password', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Change password error (PATCH):', error);
     res.status(500).json({ message: 'Failed to change password' });
   }
 });
 
 app.put('/api/user/change-password', async (req, res) => {
-  // Same logic - third endpoint for compatibility
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -3822,7 +3487,6 @@ app.put('/api/user/change-password', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Change password error (user endpoint):', error);
     res.status(500).json({ message: 'Failed to change password' });
   }
 });
@@ -3855,22 +3519,18 @@ app.get('/api/user/profile/:userId', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Get profile error:', error);
     res.status(500).json({ message: 'Failed to get profile' });
   }
 });
 
-// Recipe routes
 app.get('/api/recipes', async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // טעינת מתכונים עם נתוני המשתמש
     const recipes = await Recipe.find().sort({ createdAt: -1 });
     
-    // העשרת כל מתכון עם נתוני המשתמש המעודכנים
     const enrichedRecipes = await Promise.all(
       recipes.map(async (recipe) => {
         const user = await User.findById(recipe.userId);
@@ -3885,12 +3545,10 @@ app.get('/api/recipes', async (req, res) => {
 
     res.json(enrichedRecipes);
   } catch (error) {
-    console.error('Get recipes error:', error);
     res.status(500).json({ message: 'Failed to fetch recipes' });
   }
 });
 
-// Handle FormData with multer
 app.post('/api/recipes', upload.any(), async (req, res) => {
   try {
     console.log('=== Recipe Creation Debug ===');
@@ -3904,10 +3562,8 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // Handle FormData - the data is now in req.body after multer processing
     const formData = req.body;
     
-    // בדיקת נתונים נדרשים
     if (!formData.title || formData.title.trim() === '') {
       console.log('ERROR: Recipe title is missing, received:', formData.title);
       return res.status(400).json({ message: 'Recipe title is required' });
@@ -3915,10 +3571,8 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
     
     console.log('Title validation passed:', formData.title);
     
-    // טיפול בתמונה
     let imageData = null;
     if (req.files && req.files.length > 0) {
-      // מחפשים קובץ תמונה
       const imageFile = req.files.find(file => 
         file.fieldname === 'image' || 
         file.mimetype.startsWith('image/')
@@ -3932,20 +3586,17 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
           size: imageFile.size
         });
         
-// המרה ל-Base64
         const base64Image = imageFile.buffer.toString('base64');
         imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
         console.log('Image converted to base64, length:', imageData.length);
       }
     }
     
-    // אם אין קובץ אבל יש base64 בנתונים (מהפורטמט הקודם)
     if (!imageData && formData.image) {
       imageData = formData.image;
       console.log('Using image data from form field');
     }
     
-    // ברירות מחדל לנתונים חסרים
     const recipeData = {
       title: formData.title.trim(),
       description: formData.description || '',
@@ -3955,8 +3606,8 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
       meatType: formData.meatType || 'Mixed',
       prepTime: parseInt(formData.prepTime) || 0,
       servings: parseInt(formData.servings) || 1,
-      image: imageData, // התמונה כ-Base64 או null
-      userId: formData.userId || 'anonymous', // רק ה-ID, לא שם או תמונה
+      image: imageData, 
+      userId: formData.userId || 'anonymous', 
       likes: [],
       comments: []
     };
@@ -3972,7 +3623,6 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
     const savedRecipe = await recipe.save();
     console.log('Recipe saved successfully:', savedRecipe._id);
     
-    // החזרת המתכון עם נתוני המשתמש המעודכנים
     const user = await User.findById(savedRecipe.userId);
     const enrichedRecipe = {
       ...savedRecipe.toObject(),
@@ -3983,12 +3633,7 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
     
     res.status(201).json(enrichedRecipe);
   } catch (error) {
-    console.error('=== RECIPE CREATION ERROR ===');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Full error:', error);
     
-    // טיפול בשגיאות validation
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       res.status(400).json({ message: 'Validation error', errors: validationErrors });
@@ -4000,7 +3645,6 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
   }
 });
 
-// Get single recipe with user data
 app.get('/api/recipes/:id', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4016,7 +3660,6 @@ app.get('/api/recipes/:id', async (req, res) => {
       return res.status(404).json({ message: 'Recipe not found' });
     }
 
-    // העשרה עם נתוני המשתמש
     const user = await User.findById(recipe.userId);
     const enrichedRecipe = {
       ...recipe.toObject(),
@@ -4027,7 +3670,6 @@ app.get('/api/recipes/:id', async (req, res) => {
 
     res.json(enrichedRecipe);
   } catch (error) {
-    console.error('Get recipe error:', error);
     res.status(500).json({ message: 'Failed to fetch recipe' });
   }
 });
@@ -4038,7 +3680,6 @@ app.delete('/api/recipes/:id', async (req, res) => {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // בדיקת תקינות ID
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
@@ -4050,13 +3691,11 @@ app.delete('/api/recipes/:id', async (req, res) => {
 
     res.json({ message: 'Recipe deleted successfully' });
   } catch (error) {
-    console.error('Delete recipe error:', error);
     res.status(500).json({ message: 'Failed to delete recipe' });
   }
 });
 
 
-// Add comment to recipe ✅
   app.post('/api/recipes/:id/comments', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4078,7 +3717,6 @@ app.delete('/api/recipes/:id', async (req, res) => {
       return res.status(400).json({ message: 'Comment text is required' });
     }
 
-    // יצירת התגובה החדשה
     const user = await User.findById(userId);
 
     const newComment = {
@@ -4094,7 +3732,6 @@ app.delete('/api/recipes/:id', async (req, res) => {
     
     await recipe.save();
 
-    // 🆕 יצירת התראה רק אם זה לא הפוסט של עצמו
     if (recipe.userId !== userId) {
       await createNotification({
         type: 'comment',
@@ -4122,12 +3759,10 @@ app.delete('/api/recipes/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Add comment error:', error);
     res.status(500).json({ message: 'Failed to add comment' });
   }
 });
 
-// Delete a comment
 app.delete('/api/recipes/:id/comments/:commentId', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4154,15 +3789,13 @@ app.delete('/api/recipes/:id/comments/:commentId', async (req, res) => {
       commentsCount: recipe.comments.length 
     });
   } catch (error) {
-    console.error('Delete comment error:', error);
     res.status(500).json({ message: 'Failed to delete comment' });
   }
 });
 
-// Likes
 app.post('/api/recipes/:id/like', async (req, res) => {
   try {
-    console.log('👍 Liking recipe...');
+    console.log('Liking recipe...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -4188,7 +3821,6 @@ app.post('/api/recipes/:id/like', async (req, res) => {
     recipe.likes.push(userId);
     await recipe.save();
 
-    // 🆕 יצירת התראה רק אם זה לא הפוסט של עצמו
     if (recipe.userId !== userId) {
       const liker = await User.findById(userId);
       await createNotification({
@@ -4206,14 +3838,13 @@ app.post('/api/recipes/:id/like', async (req, res) => {
       });
     }
     
-    console.log('✅ Recipe liked successfully');
+    console.log('Recipe liked successfully');
     res.json({ 
       message: 'Recipe liked successfully',
       likes: recipe.likes,
       likesCount: recipe.likes.length 
     });
   } catch (error) {
-    console.error('❌ Like recipe error:', error);
     res.status(500).json({ message: 'Failed to like recipe' });
   }
 });
@@ -4234,24 +3865,21 @@ app.delete('/api/recipes/:id/like', async (req, res) => {
       return res.status(404).json({ message: 'Recipe not found' });
     }
     
-    const userId = 'current-user-id'; // זמני
+    const userId = 'current-user-id'; 
     
     recipe.likes = recipe.likes.filter(id => id !== userId);
     await recipe.save();
     
     res.json({ likesCount: recipe.likes.length });
   } catch (error) {
-    console.error('Unlike recipe error:', error);
     res.status(500).json({ message: 'Failed to unlike recipe' });
   }
 });
 
-// Test route
 app.get('/', (req, res) => {
   res.send('Recipe Social Network API Server is running');
 });
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -4260,13 +3888,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Global error handler:', error);
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Shutting down gracefully...');
   await mongoose.connection.close();
@@ -4274,7 +3899,6 @@ process.on('SIGINT', async () => {
 });
 // ============ PRIVATE CHAT ROUTES ============
 
-// יצירת או קבלת צ'אט פרטי
 app.post('/api/chats/private', async (req, res) => {
   try {
     console.log('=== Create/Get Private Chat ===');
@@ -4285,8 +3909,6 @@ app.post('/api/chats/private', async (req, res) => {
 
     const { otherUserId } = req.body;
     
-    // TODO: בעתיד נוסיף JWT authentication
-    // כרגע נשתמש בפתרון זמני
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
     
     if (!otherUserId) {
@@ -4299,13 +3921,11 @@ app.post('/api/chats/private', async (req, res) => {
 
     console.log(`Looking for chat between ${currentUserId} and ${otherUserId}`);
 
-    // חפש צ'אט קיים
     let chat = await PrivateChat.findOne({
       'participants.userId': { $all: [currentUserId, otherUserId] }
     });
 
     if (!chat) {
-      // קבל פרטי משתמשים
       const currentUser = await User.findById(currentUserId);
       const otherUser = await User.findById(otherUserId);
 
@@ -4313,7 +3933,6 @@ app.post('/api/chats/private', async (req, res) => {
         return res.status(404).json({ message: 'Other user not found' });
       }
 
-      // צור צ'אט חדש
       chat = new PrivateChat({
         participants: [
           {
@@ -4341,19 +3960,16 @@ app.post('/api/chats/private', async (req, res) => {
 
     res.json(chat);
   } catch (error) {
-    console.error('Create/Get private chat error:', error);
     res.status(500).json({ message: 'Failed to create/get private chat' });
   }
 });
 
-// קבלת כל הצ'אטים של המשתמש
 app.get('/api/chats/my', async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // TODO: בעתיד נוסיף JWT authentication
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
     
     console.log('Fetching chats for user:', currentUserId);
@@ -4362,7 +3978,6 @@ app.get('/api/chats/my', async (req, res) => {
       'participants.userId': currentUserId
     }).sort({ updatedAt: -1 });
 
-    // העשר כל צ'אט עם מידע נוסף
     const enrichedChats = chats.map(chat => {
       const otherParticipant = chat.participants.find(p => p.userId !== currentUserId);
       const unreadCount = chat.unreadCount.get(currentUserId) || 0;
@@ -4370,7 +3985,6 @@ app.get('/api/chats/my', async (req, res) => {
       return {
         ...chat.toObject(),
         unreadCount,
-        // הוסף מידע על המשתמש השני ברמה העליונה למען הנוחות
         otherUser: otherParticipant
       };
     });
@@ -4378,12 +3992,10 @@ app.get('/api/chats/my', async (req, res) => {
     console.log(`Found ${enrichedChats.length} chats for user`);
     res.json(enrichedChats);
   } catch (error) {
-    console.error('Get my chats error:', error);
     res.status(500).json({ message: 'Failed to fetch chats' });
   }
 });
 
-// קבלת הודעות של צ'אט ספציפי
 app.get('/api/chats/:chatId/messages', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4407,18 +4019,15 @@ app.get('/api/chats/:chatId/messages', async (req, res) => {
       .limit(limit)
       .lean();
 
-    // החזר בסדר הנכון (ישן לחדש)
     const orderedMessages = messages.reverse();
     console.log(`Found ${orderedMessages.length} messages`);
     
     res.json(orderedMessages);
   } catch (error) {
-    console.error('Get chat messages error:', error);
     res.status(500).json({ message: 'Failed to fetch messages' });
   }
 });
 
-// שליחת הודעה חדשה
 app.post('/api/chats/:chatId/messages', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4428,7 +4037,6 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
     const { chatId } = req.params;
     const { content, messageType = 'text' } = req.body;
     
-    // TODO: בעתיד נוסיף JWT authentication
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
 
     if (!content || content.trim() === '') {
@@ -4439,7 +4047,6 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
       return res.status(400).json({ message: 'Invalid chat ID' });
     }
 
-    // וודא שהמשתמש חלק מהצ'אט
     const chat = await PrivateChat.findById(chatId);
     if (!chat) {
       return res.status(404).json({ message: 'Chat not found' });
@@ -4450,32 +4057,28 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to send message to this chat' });
     }
 
-    // קבל פרטי השולח
     const sender = await User.findById(currentUserId);
     const senderName = sender ? sender.fullName : 'Unknown User';
 
     console.log(`Sending message to chat ${chatId} from ${senderName}`);
 
-    // צור הודעה חדשה
     const message = new Message({
       chatId,
       senderId: currentUserId,
       senderName,
       content: content.trim(),
       messageType,
-      readBy: [{ userId: currentUserId }] // השולח כבר "קרא" את ההודעה
+      readBy: [{ userId: currentUserId }] 
     });
 
     await message.save();
 
-    // עדכן את הצ'אט עם ההודעה האחרונה
     chat.lastMessage = {
       senderId: currentUserId,
       content: content.trim(),
       createdAt: message.createdAt
     };
 
-    // עדכן מונה הודעות לא נקראו עבור המשתמש השני
     chat.participants.forEach(participant => {
       if (participant.userId !== currentUserId) {
         const currentCount = chat.unreadCount.get(participant.userId) || 0;
@@ -4488,12 +4091,10 @@ app.post('/api/chats/:chatId/messages', async (req, res) => {
     console.log('Message sent successfully:', message._id);
     res.status(201).json(message);
   } catch (error) {
-    console.error('Send message error:', error);
     res.status(500).json({ message: 'Failed to send message' });
   }
 });
 
-// סימון הודעות כנקראו
 app.put('/api/chats/:chatId/read', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4501,7 +4102,6 @@ app.put('/api/chats/:chatId/read', async (req, res) => {
     }
 
     const { chatId } = req.params;
-    // TODO: בעתיד נוסיף JWT authentication
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
 
     if (!mongoose.Types.ObjectId.isValid(chatId)) {
@@ -4510,14 +4110,12 @@ app.put('/api/chats/:chatId/read', async (req, res) => {
 
     console.log(`Marking messages as read for user ${currentUserId} in chat ${chatId}`);
 
-    // עדכן את מונה ההודעות הלא נקראו בצ'אט
     const chat = await PrivateChat.findById(chatId);
     if (chat) {
       chat.unreadCount.set(currentUserId, 0);
       await chat.save();
     }
 
-    // עדכן את ההודעות כנקראו
     await Message.updateMany(
       { 
         chatId, 
@@ -4536,19 +4134,16 @@ app.put('/api/chats/:chatId/read', async (req, res) => {
 
     res.json({ message: 'Messages marked as read' });
   } catch (error) {
-    console.error('Mark as read error:', error);
     res.status(500).json({ message: 'Failed to mark as read' });
   }
 });
 
-// קבלת מספר הודעות לא נקראו
 app.get('/api/chats/unread-count', async (req, res) => {
   try {
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
     }
 
-    // TODO: בעתיד נוסיף JWT authentication
     const currentUserId = req.headers['x-user-id'] || 'temp-user-id';
 
     const chats = await PrivateChat.find({
@@ -4563,7 +4158,6 @@ app.get('/api/chats/unread-count', async (req, res) => {
     console.log(`User ${currentUserId} has ${totalUnread} unread messages`);
     res.json({ count: totalUnread });
   } catch (error) {
-    console.error('Get unread count error:', error);
     res.status(500).json({ count: 0 });
   }
 });
@@ -4584,7 +4178,7 @@ app.get('/api/users/search', async (req, res) => {
     console.log(`Searching users with query: ${q}`);
 
     const users = await User.find({
-      _id: { $ne: currentUserId }, // אל תכלול את המשתמש הנוכחי
+      _id: { $ne: currentUserId }, 
       $or: [
         { fullName: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } }
@@ -4602,14 +4196,12 @@ app.get('/api/users/search', async (req, res) => {
     console.log(`Found ${searchResults.length} users`);
     res.json(searchResults);
   } catch (error) {
-    console.error('Search users error:', error);
     res.status(500).json({ message: 'Failed to search users' });
   }
 });
 
 // ============ GROUP MEMBERS MANAGEMENT ============
 
-// Get group with full member details
 app.get('/api/groups/:groupId/members', async (req, res) => {
   try {
     console.log('Fetching group with full member details');
@@ -4622,13 +4214,11 @@ app.get('/api/groups/:groupId/members', async (req, res) => {
       return res.status(400).json({ message: 'Invalid group ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // העשרת נתוני החברים עם פרטים מלאים מ-User collection
     const enrichedMembers = await Promise.all(
       group.members.map(async (member) => {
         try {
@@ -4642,7 +4232,6 @@ app.get('/api/groups/:groupId/members', async (req, res) => {
             joinedAt: member.joinedAt || member.createdAt
           };
         } catch (error) {
-          console.error('Error enriching member:', member.userId, error);
           return {
             ...member.toObject(),
             userName: 'Unknown User',
@@ -4655,17 +4244,15 @@ app.get('/api/groups/:groupId/members', async (req, res) => {
       })
     );
 
-    // מיון החברים - בעלים ואדמינים קודם
     const sortedMembers = enrichedMembers.sort((a, b) => {
       const roleOrder = { owner: 3, admin: 2, member: 1 };
       const aOrder = roleOrder[a.role] || 1;
       const bOrder = roleOrder[b.role] || 1;
       
       if (aOrder !== bOrder) {
-        return bOrder - aOrder; // מיון יורד - בעלים קודם
+        return bOrder - aOrder; 
       }
       
-      // אם אותו תפקיד, מיין לפי תאריך הצטרפות
       return new Date(a.joinedAt) - new Date(b.joinedAt);
     });
 
@@ -4683,25 +4270,22 @@ app.get('/api/groups/:groupId/members', async (req, res) => {
           };
         }
     } catch (error) {
-      console.error('Error fetching creator info:', error);
     }
 
     const enrichedGroup = {
       ...group.toObject(),
       members: sortedMembers,
-      ...creatorInfo  // הוסף את מידע היוצר
+      ...creatorInfo  
     };
 
     console.log('Group with enriched members fetched successfully');
     res.json(enrichedGroup);
 
   } catch (error) {
-    console.error('Get group members error:', error);
     res.status(500).json({ message: 'Failed to fetch group members' });
   }
 });
 
-// Update member role (promote/demote)
 app.put('/api/groups/:groupId/members/:memberUserId/role', async (req, res) => {
   try {
     console.log('Updating member role');
@@ -4713,7 +4297,6 @@ app.put('/api/groups/:groupId/members/:memberUserId/role', async (req, res) => {
     const { groupId, memberUserId } = req.params;
     const { role, adminId } = req.body;
 
-    // בדיקת תקינות
     if (!mongoose.Types.ObjectId.isValid(groupId)) {
       return res.status(400).json({ message: 'Invalid group ID' });
     }
@@ -4722,19 +4305,16 @@ app.put('/api/groups/:groupId/members/:memberUserId/role', async (req, res) => {
       return res.status(400).json({ message: 'Invalid role. Must be "member" or "admin"' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקה שהמבקש הוא יוצר הקבוצה
     const isCreator = group.creatorId === adminId || group.creatorId?.toString() === adminId?.toString();
     if (!isCreator) {
       return res.status(403).json({ message: 'Only the group creator can change member roles' });
     }
 
-    // מציאת החבר
     const memberIndex = group.members.findIndex(member => 
       member.userId === memberUserId || member.userId?.toString() === memberUserId?.toString()
     );
@@ -4745,16 +4325,13 @@ app.put('/api/groups/:groupId/members/:memberUserId/role', async (req, res) => {
 
     const member = group.members[memberIndex];
 
-    // מניעת שינוי תפקיד היוצר
     if (member.role === 'owner') {
       return res.status(403).json({ message: 'Cannot change the role of the group creator' });
     }
 
-    // עדכון התפקיד
     group.members[memberIndex].role = role;
     await group.save();
 
-    // החזרת החבר המעודכן עם נתונים מלאים
     const user = await User.findById(memberUserId);
     const updatedMember = {
       ...group.members[memberIndex].toObject(),
@@ -4770,12 +4347,10 @@ app.put('/api/groups/:groupId/members/:memberUserId/role', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update member role error:', error);
     res.status(500).json({ message: 'Failed to update member role' });
   }
 });
 
-// Remove member from group (Enhanced version)
 app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
   try {
     console.log('Removing member from group');
@@ -4787,18 +4362,15 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
     const { groupId, memberUserId } = req.params;
     const { adminId } = req.body;
 
-    // בדיקת תקינות IDs
     if (!mongoose.Types.ObjectId.isValid(groupId) || !memberUserId || !adminId) {
       return res.status(400).json({ message: 'Invalid group ID, member ID, or admin ID' });
     }
 
-    // בדיקה שהקבוצה קיימת
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // בדיקה שהמבקש הוא אדמין או יוצר הקבוצה
     const isAdmin = group.members.some(member => 
       (member.userId === adminId || member.userId?.toString() === adminId?.toString()) && 
       (member.role === 'admin' || member.role === 'owner')
@@ -4809,7 +4381,6 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
       return res.status(403).json({ message: 'Only admins can remove members' });
     }
 
-    // בדיקה שהחבר קיים בקבוצה
     const memberIndex = group.members.findIndex(member => 
       member.userId === memberUserId || member.userId?.toString() === memberUserId?.toString()
     );
@@ -4820,21 +4391,17 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
 
     const memberToRemove = group.members[memberIndex];
 
-    // מניעת הסרת היוצר
     if (memberToRemove.role === 'owner' || group.creatorId === memberUserId || group.creatorId?.toString() === memberUserId?.toString()) {
       return res.status(403).json({ message: 'Cannot remove the group creator' });
     }
 
-    // מניעת הסרה עצמית (השתמש ב-leave endpoint במקום)
     if (memberUserId === adminId) {
       return res.status(400).json({ message: 'Use leave group endpoint to remove yourself' });
     }
 
-    // קבלת שם החבר לפני ההסרה
     const user = await User.findById(memberUserId);
     const memberName = user ? user.fullName : 'Unknown User';
 
-    // הסרת החבר מהקבוצה
     group.members.splice(memberIndex, 1);
     group.membersCount = group.members.length;
     
@@ -4849,14 +4416,11 @@ app.delete('/api/groups/:groupId/members/:memberUserId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Remove member error:', error);
     res.status(500).json({ message: 'Failed to remove member' });
   }
 });
 
-// ============ תיקון GET GROUP ENDPOINT לכלול נתוני חברים ============
 
-// עדכן את הendpoint הקיים של /api/groups/:groupId להחזיר נתוני חברים מעושרים:
 app.get('/api/groups/:groupId', async (req, res) => {
   try {
     console.log('Fetching group details with member info');
@@ -4869,13 +4433,11 @@ app.get('/api/groups/:groupId', async (req, res) => {
       return res.status(400).json({ message: 'Invalid group ID' });
     }
 
-    // טען את הקבוצה
     const group = await Group.findById(req.params.groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    // העשר נתוני חברים עם מידע בסיסי (רק לתצוגה מקדימה)
     const enrichedMembers = await Promise.all(
       (group.members || []).slice(0, 6).map(async (member) => {
         try {
@@ -4913,30 +4475,24 @@ app.get('/api/groups/:groupId', async (req, res) => {
         };
       }
     } catch (error) {
-      console.error('Error fetching creator info:', error);
     }
 
-    // החזר את הקבוצה עם חברים מעושרים ומידע יוצר
     const enrichedGroup = {
       ...group.toObject(),
       members: enrichedMembers,
-      ...creatorInfo  // הוסף את מידע היוצר
+      ...creatorInfo  
     };
 
     console.log('Group details with member info fetched successfully');
     res.json(enrichedGroup);
 
   } catch (error) {
-    console.error('Get group details error:', error);
     res.status(500).json({ message: 'Failed to fetch group details' });
   }
 });
 
-// ============ END CHAT ROUTES ============
-
 // ============ PERSONALIZED FEED ENDPOINTS ============
 
-// Get personalized feed for user
 app.get('/api/feed', async (req, res) => {
   try {
     console.log('=== Personalized Feed Request ===');
@@ -4955,18 +4511,16 @@ app.get('/api/feed', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    console.log('📥 Building personalized feed for user:', userId, 'type:', type);
+    console.log('Building personalized feed for user:', userId, 'type:', type);
 
-    // קבל את המשתמש ורשימת מי שהוא עוקב אחריו
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     const following = user.following || [];
-    console.log('👥 User follows:', following.length, 'people');
+    console.log('User follows:', following.length, 'people');
 
-    // 🔧 תיקון קבלת הקבוצות - תמיכה בכל סוגי ה-ID
     const userGroups = await Group.find({
       $or: [
         { 'members.userId': userId },
@@ -4975,13 +4529,12 @@ app.get('/api/feed', async (req, res) => {
     }).select('_id name');
     
     const groupIds = userGroups.map(group => group._id);
-    console.log('🏠 User is member of:', groupIds.length, 'groups');
+    console.log('User is member of:', groupIds.length, 'groups');
 
     let allPosts = [];
 
     if (type === 'following') {
-      // רק פוסטים של אנשים שאני עוקבת אחריהם + הפוסטים שלי
-      console.log('📥 Loading following posts only...');
+      console.log('Loading following posts only...');
       
       const followingPosts = await Recipe.find({
         userId: { $in: [...following, userId] }
@@ -4990,8 +4543,7 @@ app.get('/api/feed', async (req, res) => {
       allPosts = followingPosts;
       
     } else if (type === 'groups') {
-      // רק פוסטי קבוצות
-      console.log('📥 Loading groups posts only...');
+      console.log('Loading groups posts only...');
       
       const groupPosts = await GroupPost.find({
         groupId: { $in: groupIds },
@@ -5001,29 +4553,24 @@ app.get('/api/feed', async (req, res) => {
       allPosts = groupPosts;
       
     } else {
-      // פיד מותאם אישית מלא - following + groups + own posts
-      console.log('📥 Loading full personalized feed...');
+      console.log('Loading full personalized feed...');
 
-      // 1. פוסטים של אנשים שאני עוקבת אחריהם + הפוסטים שלי
       const followingPosts = await Recipe.find({
         userId: { $in: [...following, userId] }
       }).sort({ createdAt: -1 });
 
-      console.log('📄 Following posts:', followingPosts.length);
+      console.log('Following posts:', followingPosts.length);
 
-      // 2. פוסטי קבוצות מאושרים
       const groupPosts = await GroupPost.find({
         groupId: { $in: groupIds },
         isApproved: true
       }).sort({ createdAt: -1 });
 
-      console.log('🏠 Group posts:', groupPosts.length);
+      console.log('Group posts:', groupPosts.length);
 
-      // שלב את כל הפוסטים
       allPosts = [...followingPosts, ...groupPosts];
     }
 
-    // העשר כל פוסט עם נתוני המשתמש והקבוצה
     const enrichedPosts = await Promise.all(
       allPosts.map(async (post) => {
         try {
@@ -5035,7 +4582,6 @@ app.get('/api/feed', async (req, res) => {
             userBio: postUser ? postUser.bio : null
           };
 
-          // אם זה פוסט קבוצה, הוסף מידע על הקבוצה
           if (post.groupId) {
             const group = userGroups.find(g => g._id.toString() === post.groupId.toString());
             enrichedPost.groupName = group ? group.name : 'Unknown Group';
@@ -5046,7 +4592,6 @@ app.get('/api/feed', async (req, res) => {
 
           return enrichedPost;
         } catch (error) {
-          console.error('Error enriching post:', post._id, error);
           return {
             ...post.toObject(),
             userName: 'Unknown User',
@@ -5058,23 +4603,20 @@ app.get('/api/feed', async (req, res) => {
       })
     );
 
-    // מיין את כל הפוסטים לפי תאריך (חדש לישן)
     enrichedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    console.log(`✅ Returning ${enrichedPosts.length} posts in personalized feed`);
+    console.log(`Returning ${enrichedPosts.length} posts in personalized feed`);
     res.json(enrichedPosts);
 
   } catch (error) {
-    console.error('❌ Get personalized feed error:', error);
     res.status(500).json({ message: 'Failed to fetch personalized feed' });
   }
 });
 
-// 🔧 תיקון endpoint הקבוצות
 app.get('/api/groups/my-posts', async (req, res) => {
   try {
     console.log('=== User Groups Posts Request ===');
-    console.log('📥 Groups my-posts request - userId:', req.query.userId);
+    console.log('Groups my-posts request - userId:', req.query.userId);
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -5086,9 +4628,8 @@ app.get('/api/groups/my-posts', async (req, res) => {
       return res.status(400).json({ message: 'User ID is required' });
     }
 
-    console.log('📥 Getting group posts for user:', userId);
+    console.log('Getting group posts for user:', userId);
 
-    // 🔧 תיקון עיקרי - קבל את הקבוצות עם תמיכה בכל סוגי ה-ID
     let userGroups;
     try {
       userGroups = await Group.find({
@@ -5098,30 +4639,26 @@ app.get('/api/groups/my-posts', async (req, res) => {
         ]
       }).select('_id name');
     } catch (error) {
-      console.error('Error finding user groups:', error);
       return res.status(500).json({ message: 'Failed to find user groups' });
     }
     
-    console.log('🏠 User is member of:', userGroups.length, 'groups');
+    console.log('User is member of:', userGroups.length, 'groups');
 
     if (userGroups.length === 0) {
-      console.log('📭 User is not a member of any groups');
+      console.log('User is not a member of any groups');
       return res.json([]);
     }
 
-    // 🔧 תיקון המרת groupIds - השאר אותם כ-ObjectId
     const groupIds = userGroups.map(group => group._id);
-    console.log('📋 Group IDs:', groupIds);
+    console.log('Group IDs:', groupIds);
 
-    // קבל פוסטים מאושרים מהקבוצות
     const groupPosts = await GroupPost.find({
       groupId: { $in: groupIds },
       isApproved: true
     }).sort({ createdAt: -1 });
 
-    console.log('📄 Found', groupPosts.length, 'group posts');
+    console.log('Found', groupPosts.length, 'group posts');
 
-    // העשר עם נתוני המשתמש והקבוצה
     const enrichedPosts = await Promise.all(
       groupPosts.map(async (post) => {
         try {
@@ -5137,7 +4674,6 @@ app.get('/api/groups/my-posts', async (req, res) => {
             postSource: 'group'
           };
         } catch (error) {
-          console.error('Error enriching group post:', post._id, error);
           return {
             ...post.toObject(),
             userName: 'Unknown User',
@@ -5150,16 +4686,14 @@ app.get('/api/groups/my-posts', async (req, res) => {
       })
     );
 
-    console.log(`✅ Returning ${enrichedPosts.length} group posts`);
+    console.log(`Returning ${enrichedPosts.length} group posts`);
     res.json(enrichedPosts);
 
   } catch (error) {
-    console.error('❌ Get user groups posts error:', error);
     res.status(500).json({ message: 'Failed to fetch user groups posts' });
   }
 });
 
-// Get user's following posts only
 app.get('/api/following/posts', async (req, res) => {
   try {
     console.log('=== Following Posts Request ===');
@@ -5178,30 +4712,27 @@ app.get('/api/following/posts', async (req, res) => {
       return res.status(400).json({ message: 'Invalid user ID' });
     }
 
-    console.log('📥 Getting following posts for user:', userId);
+    console.log('Getting following posts for user:', userId);
 
-    // קבל את המשתמש ורשימת מי שהוא עוקב אחריו
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     const following = user.following || [];
-    console.log('👥 User follows:', following.length, 'people');
+    console.log('User follows:', following.length, 'people');
 
     if (following.length === 0) {
-      console.log('📭 User is not following anyone');
+      console.log('User is not following anyone');
       return res.json([]);
     }
 
-    // קבל פוסטים של אנשים שהוא עוקב אחריהם + הפוסטים שלו
     const followingPosts = await Recipe.find({
       userId: { $in: [...following, userId] }
     }).sort({ createdAt: -1 });
 
-    console.log('📄 Found', followingPosts.length, 'following posts');
+    console.log('Found', followingPosts.length, 'following posts');
 
-    // העשר עם נתוני המשתמש
     const enrichedPosts = await Promise.all(
       followingPosts.map(async (post) => {
         try {
@@ -5215,7 +4746,6 @@ app.get('/api/following/posts', async (req, res) => {
             postSource: 'personal'
           };
         } catch (error) {
-          console.error('Error enriching following post:', post._id, error);
           return {
             ...post.toObject(),
             userName: 'Unknown User',
@@ -5227,21 +4757,17 @@ app.get('/api/following/posts', async (req, res) => {
       })
     );
 
-    console.log(`✅ Returning ${enrichedPosts.length} following posts`);
+    console.log(`Returning ${enrichedPosts.length} following posts`);
     res.json(enrichedPosts);
 
   } catch (error) {
-    console.error('❌ Get following posts error:', error);
     res.status(500).json({ message: 'Failed to fetch following posts' });
   }
 });
 
-// ============ תיקון LIKE/UNLIKE ENDPOINTS לתמיכה ב-userId בגוף הבקשה ============
-
-// Like recipe - מעודכן
 app.post('/api/recipes/:id/like', async (req, res) => {
   try {
-    console.log('👍 Liking recipe...');
+    console.log('Liking recipe...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -5251,7 +4777,6 @@ app.post('/api/recipes/:id/like', async (req, res) => {
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
 
-    // קבל userId מהגוף או מהheaders (לתאימות לאחור)
     const userId = req.body.userId || req.headers['x-user-id'] || 'temp-user-id';
     
     const recipe = await Recipe.findById(req.params.id);
@@ -5261,7 +4786,6 @@ app.post('/api/recipes/:id/like', async (req, res) => {
 
     if (!recipe.likes) recipe.likes = [];
     
-    // בדוק שעוד לא עשה לייק
     if (recipe.likes.includes(userId)) {
       return res.status(400).json({ message: 'Already liked this recipe' });
     }
@@ -5269,22 +4793,20 @@ app.post('/api/recipes/:id/like', async (req, res) => {
     recipe.likes.push(userId);
     await recipe.save();
     
-    console.log('✅ Recipe liked successfully');
+    console.log('Recipe liked successfully');
     res.json({ 
       message: 'Recipe liked successfully',
       likes: recipe.likes,
       likesCount: recipe.likes.length 
     });
   } catch (error) {
-    console.error('❌ Like recipe error:', error);
     res.status(500).json({ message: 'Failed to like recipe' });
   }
 });
 
-// Unlike recipe - מעודכן
 app.delete('/api/recipes/:id/like', async (req, res) => {
   try {
-    console.log('👎 Unliking recipe...');
+    console.log('Unliking recipe...');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ message: 'Database not available' });
@@ -5294,7 +4816,6 @@ app.delete('/api/recipes/:id/like', async (req, res) => {
       return res.status(400).json({ message: 'Invalid recipe ID' });
     }
 
-    // קבל userId מהגוף או מהheaders (לתאימות לאחור)  
     const userId = req.body.userId || req.headers['x-user-id'] || 'temp-user-id';
     
     const recipe = await Recipe.findById(req.params.id);
@@ -5309,21 +4830,19 @@ app.delete('/api/recipes/:id/like', async (req, res) => {
     recipe.likes = recipe.likes.filter(id => id !== userId);
     await recipe.save();
     
-    console.log('✅ Recipe unliked successfully');
+    console.log('Recipe unliked successfully');
     res.json({ 
       message: 'Recipe unliked successfully',
       likes: recipe.likes,
       likesCount: recipe.likes.length 
     });
   } catch (error) {
-    console.error('❌ Unlike recipe error:', error);
     res.status(500).json({ message: 'Failed to unlike recipe' });
   }
 });
 
 // ============ UTILITY ENDPOINTS ============
 
-// Get user's feed stats
 app.get('/api/feed/stats', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -5336,7 +4855,6 @@ app.get('/api/feed/stats', async (req, res) => {
       return res.status(400).json({ message: 'Valid user ID is required' });
     }
 
-    // קבל את המשתמש
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -5344,7 +4862,6 @@ app.get('/api/feed/stats', async (req, res) => {
 
     const following = user.following || [];
     
-    // 🔧 תיקון קבלת הקבוצות גם כאן
     const userGroups = await Group.find({
       $or: [
         { 'members.userId': userId },
@@ -5352,7 +4869,6 @@ app.get('/api/feed/stats', async (req, res) => {
       ]
     });
 
-    // ספור פוסטים
     const [followingPostsCount, groupPostsCount, ownPostsCount] = await Promise.all([
       Recipe.countDocuments({ userId: { $in: following } }),
       GroupPost.countDocuments({ 
@@ -5371,20 +4887,17 @@ app.get('/api/feed/stats', async (req, res) => {
       totalFeedPosts: followingPostsCount + groupPostsCount + ownPostsCount
     };
 
-    console.log('📊 Feed stats for user:', userId, stats);
+    console.log('Feed stats for user:', userId, stats);
     res.json(stats);
 
   } catch (error) {
-    console.error('Get feed stats error:', error);
     res.status(500).json({ message: 'Failed to get feed stats' });
   }
 });
 
-// פונקציה למחיקת משתמש - העתק והדבק לשרת שלך
-
 app.delete('/api/auth/delete-account', async (req, res) => {
   try {
-    console.log('🗑️ === STARTING USER ACCOUNT DELETION ===');
+    console.log('Starting user account deletion');
     
     if (!isMongoConnected()) {
       return res.status(503).json({ 
@@ -5416,9 +4929,8 @@ app.delete('/api/auth/delete-account', async (req, res) => {
       });
     }
 
-    console.log('👤 Finding user to delete:', userId);
+    console.log('Finding user to delete:', userId);
 
-    // מצא את המשתמש
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ 
@@ -5427,66 +4939,124 @@ app.delete('/api/auth/delete-account', async (req, res) => {
       });
     }
 
-    // ✅ בדוק סיסמה
-    const bcrypt = require('bcryptjs');
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Verifying password');
+
+    const isPasswordValid = (password.trim() === user.password.trim());
+
     if (!isPasswordValid) {
-      console.log('❌ Invalid password provided');
-      return res.status(400).json({ 
+      console.log('Invalid password - blocking deletion');
+      return res.status(401).json({ 
         success: false, 
-        message: 'Invalid password' 
+        message: 'Invalid password. Please enter your correct password to delete your account.' 
       });
     }
 
-    console.log('✅ Password verified, proceeding with deletion...');
+    console.log('Password verified successfully, proceeding with deletion');
 
-    // ✅ טיפול בקבוצות שהמשתמש הוא אדמין שלהן
-    console.log('🔄 Handling groups where user is admin...');
+    console.log('Handling regular groups where user is creator');
+    
+    const createdGroups = await Group.find({ creatorId: userId });
+    console.log(`Found ${createdGroups.length} groups where user is creator`);
+
+    for (const group of createdGroups) {
+      console.log(`Processing group: ${group.name} (${group._id})`);
+      
+      const otherMembers = group.members.filter(member => 
+        member.userId !== userId && member.userId?.toString() !== userId?.toString()
+      );
+      
+      if (otherMembers.length === 0) {
+        console.log(`No other members, deleting group: ${group.name}`);
+        
+        await GroupPost.deleteMany({ groupId: group._id });
+        await Group.findByIdAndDelete(group._id);
+        
+        console.log(`Group ${group.name} deleted completely`);
+      } else {
+        const randomIndex = Math.floor(Math.random() * otherMembers.length);
+        const newCreator = otherMembers[randomIndex];
+        
+        console.log(`Transferring group ownership to: ${newCreator.userId}`);
+        
+        group.creatorId = newCreator.userId;
+        
+        const memberIndex = group.members.findIndex(member => 
+          member.userId === newCreator.userId || member.userId?.toString() === newCreator.userId?.toString()
+        );
+        
+        if (memberIndex !== -1) {
+          group.members[memberIndex].role = 'admin';
+        }
+        
+        group.members = group.members.filter(member => 
+          member.userId !== userId && member.userId?.toString() !== userId?.toString()
+        );
+        
+        if (group.pendingRequests) {
+          group.pendingRequests = group.pendingRequests.filter(request => 
+            request.userId !== userId && request.userId?.toString() !== userId?.toString()
+          );
+        }
+        
+        await group.save();
+        
+        console.log(`Group ownership transferred successfully for: ${group.name}`);
+      }
+    }
+
+    console.log('Removing user from other groups');
+    
+    await Group.updateMany(
+      { 
+        creatorId: { $ne: userId },
+        'members.userId': userId 
+      },
+      { 
+        $pull: { 
+          members: { userId: userId },
+          pendingRequests: { userId: userId }
+        } 
+      }
+    );
+
+    console.log('Handling group chats where user is admin');
     
     const adminGroups = await GroupChat.find({ adminId: userId });
-    console.log(`📊 Found ${adminGroups.length} groups where user is admin`);
+    console.log(`Found ${adminGroups.length} group chats where user is admin`);
 
     for (const group of adminGroups) {
-      console.log(`🔄 Processing group: ${group.name} (${group._id})`);
+      console.log(`Processing group chat: ${group.name} (${group._id})`);
       
-      // מצא משתתפים אחרים (לא המשתמש שנמחק)
       const otherParticipants = group.participants.filter(p => p.userId !== userId);
       
       if (otherParticipants.length === 0) {
-        // אין משתתפים אחרים - מחק את הקבוצה
-        console.log(`🗑️ No other participants, deleting group: ${group.name}`);
+        console.log(`No other participants, deleting group chat: ${group.name}`);
         
         await GroupChatMessage.deleteMany({ groupChatId: group._id });
         await GroupChat.findByIdAndDelete(group._id);
         
-        console.log(`✅ Group ${group.name} deleted completely`);
+        console.log(`Group chat ${group.name} deleted completely`);
       } else {
-        // יש משתתפים אחרים - העבר אדמין רנדומלי
         const randomIndex = Math.floor(Math.random() * otherParticipants.length);
         const newAdmin = otherParticipants[randomIndex];
         
-        console.log(`👑 Transferring admin to: ${newAdmin.userName} (${newAdmin.userId})`);
+        console.log(`Transferring group chat admin to: ${newAdmin.userName} (${newAdmin.userId})`);
         
-        // עדכן את האדמין החדש
         group.adminId = newAdmin.userId;
         
-        // עדכן את התפקיד ברשימת המשתתפים
         const adminParticipantIndex = group.participants.findIndex(p => p.userId === newAdmin.userId);
         if (adminParticipantIndex !== -1) {
           group.participants[adminParticipantIndex].role = 'admin';
         }
         
-        // הסר את המשתמש הנמחק מהרשימה
         group.participants = group.participants.filter(p => p.userId !== userId);
         
-        // עדכן מונה הודעות לא נקראו
         if (group.unreadCount) {
           group.unreadCount.delete(userId);
         }
         
         await group.save();
         
-        // צור הודעת מערכת על שינוי האדמין
         const systemMessage = new GroupChatMessage({
           groupChatId: group._id,
           senderId: 'system',
@@ -5500,34 +5070,30 @@ app.delete('/api/auth/delete-account', async (req, res) => {
         
         await systemMessage.save();
         
-        console.log(`✅ Admin transferred successfully for group: ${group.name}`);
+        console.log(`Group chat admin transferred successfully for: ${group.name}`);
       }
     }
 
-    // ✅ טיפול בקבוצות שהמשתמש רק חבר בהן (לא אדמין)
-    console.log('🔄 Handling groups where user is a member...');
+    console.log('Handling group chats where user is a member');
     
     const memberGroups = await GroupChat.find({ 
       'participants.userId': userId,
-      adminId: { $ne: userId } // לא כולל קבוצות שהוא אדמין שלהן (כבר טופלו)
+      adminId: { $ne: userId } 
     });
     
-    console.log(`📊 Found ${memberGroups.length} groups where user is a member`);
+    console.log(`Found ${memberGroups.length} group chats where user is a member`);
 
     for (const group of memberGroups) {
-      console.log(`🔄 Removing user from group: ${group.name}`);
+      console.log(`Removing user from group chat: ${group.name}`);
       
-      // הסר את המשתמש מהרשימה
       group.participants = group.participants.filter(p => p.userId !== userId);
       
-      // עדכן מונה הודעות לא נקראו
       if (group.unreadCount) {
         group.unreadCount.delete(userId);
       }
       
       await group.save();
       
-      // צור הודעת מערכת על עזיבה
       const systemMessage = new GroupChatMessage({
         groupChatId: group._id,
         senderId: 'system',
@@ -5541,43 +5107,40 @@ app.delete('/api/auth/delete-account', async (req, res) => {
       
       await systemMessage.save();
       
-      console.log(`✅ User removed from group: ${group.name}`);
+      console.log(`User removed from group chat: ${group.name}`);
     }
 
-    // ✅ טיפול בצ'אטים פרטיים
-    console.log('🔄 Handling private chats...');
+    console.log('Handling private chats');
     
     const privateChats = await PrivateChat.find({ 'participants.userId': userId });
-    console.log(`📊 Found ${privateChats.length} private chats`);
+    console.log(`Found ${privateChats.length} private chats`);
 
     for (const chat of privateChats) {
-      // מחק הודעות של הצ'אט
-      await PrivateChatMessage.deleteMany({ chatId: chat._id });
-      // מחק את הצ'אט עצמו
+      await Message.deleteMany({ chatId: chat._id });
       await PrivateChat.findByIdAndDelete(chat._id);
     }
 
-    console.log('✅ Private chats cleaned up');
+    console.log('Private chats cleaned up');
 
-    // ✅ טיפול בפוסטים וקבוצות רגילות (אם יש)
-    console.log('🔄 Handling user posts and other content...');
+    console.log('Handling user posts and other content');
     
-    // מחק פוסטים של המשתמש
-    await Post.deleteMany({ userId: userId });
+    await Recipe.deleteMany({ userId: userId });
     
-    // הסר את המשתמש מקבוצות רגילות (groupService)
-    await Group.updateMany(
-      { 'members.userId': userId },
-      { $pull: { members: { userId: userId } } }
-    );
+    await GroupPost.deleteMany({ userId: userId });
 
-    console.log('✅ Posts and groups cleaned up');
+    await Notification.deleteMany({ 
+      $or: [
+        { fromUserId: userId },
+        { toUserId: userId }
+      ]
+    });
 
-    // ✅ מחק את המשתמש עצמו
-    console.log('🗑️ Deleting user account...');
+    console.log('Posts, group posts, and notifications cleaned up');
+
+    console.log('Deleting user account');
     await User.findByIdAndDelete(userId);
 
-    console.log('🎉 === USER ACCOUNT DELETION COMPLETED SUCCESSFULLY ===');
+    console.log('User account deletion completed successfully');
 
     res.json({
       success: true,
@@ -5585,19 +5148,16 @@ app.delete('/api/auth/delete-account', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Delete user account error:', error);
+    console.error('Delete user account error:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while deleting the account'
     });
   }
-
-  console.log('✅ Enhanced user deletion endpoint with group admin transfer added');
-
 });
 
 app.delete('/api/user/delete', async (req, res) => {
-  console.log('🗑️ User delete endpoint called - redirecting to main endpoint');
+  console.log('User delete endpoint called - redirecting to main endpoint');
   
   try {
     const { userId } = req.body;
@@ -5633,7 +5193,6 @@ app.delete('/api/user/delete', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in /api/user/delete:', error.message);
     res.status(500).json({
       success: false,
       message: 'Delete failed: ' + error.message
@@ -5642,7 +5201,7 @@ app.delete('/api/user/delete', async (req, res) => {
 });
 
 app.delete('/api/auth/delete-user', async (req, res) => {
-  console.log('🗑️ Auth delete user endpoint called');
+  console.log('Auth delete user endpoint called');
   
   try {
     const { userId } = req.body;
@@ -5678,7 +5237,6 @@ app.delete('/api/auth/delete-user', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in /api/auth/delete-user:', error.message);
     res.status(500).json({ 
       success: false, 
       message: 'Delete failed: ' + error.message 

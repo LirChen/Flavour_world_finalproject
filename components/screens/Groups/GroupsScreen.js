@@ -1,5 +1,3 @@
-// components/screens/groups/GroupsScreen.js
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
@@ -37,7 +35,6 @@ const FLAVORWORLD_COLORS = {
 const GroupsScreen = ({ navigation }) => {
   const { currentUser } = useAuth();
   
-  // State
   const [groups, setGroups] = useState([]);
   const [myGroups, setMyGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +73,12 @@ const GroupsScreen = ({ navigation }) => {
         );
 
         setMyGroups(userGroups);
-        setGroups(otherGroups);
+        
+        // עבור discover - הראה רק 6 קבוצות רנדומליות
+        const shuffled = otherGroups.sort(() => 0.5 - Math.random());
+        const discoverGroups = shuffled.slice(0, 6);
+        
+        setGroups(discoverGroups);
       } else {
         Alert.alert('Error', result.message || 'Failed to load groups');
       }
@@ -127,6 +129,27 @@ const GroupsScreen = ({ navigation }) => {
     navigation.navigate('GroupDetails', { groupId: group._id });
   };
 
+  const refreshDiscoverGroups = async () => {
+    try {
+      const result = await groupService.getAllGroups(currentUser?.id || currentUser?._id);
+      
+      if (result.success) {
+        const allGroups = result.data || [];
+        const otherGroups = allGroups.filter(group => 
+          !groupService.isMember(group, currentUser?.id || currentUser?._id)
+        );
+        
+        // בחר 6 קבוצות רנדומליות חדשות
+        const shuffled = otherGroups.sort(() => 0.5 - Math.random());
+        const discoverGroups = shuffled.slice(0, 6);
+        
+        setGroups(discoverGroups);
+      }
+    } catch (error) {
+      console.error('Refresh discover groups error:', error);
+    }
+  };
+
   const filteredGroups = useMemo(() => {
     const currentGroups = selectedTab === 'my' ? myGroups : groups;
     
@@ -154,7 +177,6 @@ const GroupsScreen = ({ navigation }) => {
         onPress={() => handleGroupPress(group)}
         activeOpacity={0.7}
       >
-        {/**/}
         <View style={styles.groupImageContainer}>
           {group.image ? (
             <Image source={{ uri: group.image }} style={styles.groupImage} />
@@ -164,7 +186,6 @@ const GroupsScreen = ({ navigation }) => {
             </View>
           )}
           
-          {/**/}
           <View style={[styles.privacyBadge, group.isPrivate && styles.privateBadge]}>
             <Ionicons 
               name={group.isPrivate ? "lock-closed" : "globe"} 
@@ -174,7 +195,6 @@ const GroupsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/**/}
         <View style={styles.groupInfo}>
           <Text style={styles.groupName} numberOfLines={1}>
             {group.name}
@@ -212,7 +232,6 @@ const GroupsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/**/}
         <View style={styles.actionButton}>
           {isMember ? (
             <TouchableOpacity style={styles.memberButton}>
@@ -244,12 +263,12 @@ const GroupsScreen = ({ navigation }) => {
     <View style={styles.emptyState}>
       <Ionicons name="people-outline" size={80} color={FLAVORWORLD_COLORS.textLight} />
       <Text style={styles.emptyTitle}>
-        {selectedTab === 'my' ? 'No Groups Yet' : 'No Groups Found'}
+        {selectedTab === 'my' ? 'No Groups Yet' : 'No New Groups to Discover'}
       </Text>
       <Text style={styles.emptySubtitle}>
         {selectedTab === 'my' 
           ? 'Join cooking groups or create your own to share recipes with fellow food lovers!'
-          : 'Try adjusting your search or explore different categories.'
+          : 'Great! You\'re already a member of all available groups. Check back later for new communities!'
         }
       </Text>
       {selectedTab === 'my' && (
@@ -257,12 +276,19 @@ const GroupsScreen = ({ navigation }) => {
           <Text style={styles.createGroupButtonText}>Create Group</Text>
         </TouchableOpacity>
       )}
+      {selectedTab === 'discover' && (
+        <TouchableOpacity 
+          style={styles.createGroupButton} 
+          onPress={refreshDiscoverGroups}
+        >
+          <Text style={styles.createGroupButtonText}>Refresh</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
-      {/**/}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
         <TextInput
@@ -279,7 +305,6 @@ const GroupsScreen = ({ navigation }) => {
         )}
       </View>
 
-      {/**/}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, selectedTab === 'my' && styles.activeTab]}
@@ -299,6 +324,16 @@ const GroupsScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {selectedTab === 'discover' && !searchQuery.trim() && (
+        <TouchableOpacity 
+          style={styles.refreshButton} 
+          onPress={refreshDiscoverGroups}
+        >
+          <Ionicons name="refresh" size={16} color={FLAVORWORLD_COLORS.primary} />
+          <Text style={styles.refreshButtonText}>Show Different Groups</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -315,7 +350,6 @@ const GroupsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -348,7 +382,6 @@ const GroupsScreen = ({ navigation }) => {
         onRefresh={onRefresh}
       />
 
-      {/**/}
       <Modal
         visible={showCreateModal}
         animationType="slide"
@@ -457,6 +490,24 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: FLAVORWORLD_COLORS.primary,
     fontWeight: '600',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: FLAVORWORLD_COLORS.background,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: FLAVORWORLD_COLORS.primary,
+  },
+  refreshButtonText: {
+    fontSize: 14,
+    color: FLAVORWORLD_COLORS.primary,
+    fontWeight: '500',
+    marginLeft: 4,
   },
   listContainer: {
     padding: 16,

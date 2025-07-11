@@ -4,12 +4,10 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const router = express.Router();
 
-// הרשמה
 router.post('/register', async (req, res) => {
   try {
     const { fullName, email, password, confirmPassword } = req.body;
 
-    // בדיקת תקינות
     if (!fullName || !email || !password || !confirmPassword) {
       return res.status(400).json({ message: 'All fields are required' });
     }
@@ -22,17 +20,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
-    // בדיקה אם המשתמש כבר קיים
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
 
-    // הצפנת הסיסמה
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // יצירת משתמש חדש
     const user = new User({
       fullName: fullName.trim(),
       email: email.toLowerCase().trim(),
@@ -41,7 +36,6 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // יצירת טוקן
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -64,29 +58,24 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// התחברות
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // בדיקת תקינות
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // חיפוש המשתמש
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // בדיקת הסיסמה
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // יצירת טוקן
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -109,7 +98,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// שכחת סיסמה (בסיסי - רק הודעת הצלחה)
 router.post('/forgotpassword', async (req, res) => {
   try {
     const { email } = req.body;
@@ -118,14 +106,10 @@ router.post('/forgotpassword', async (req, res) => {
       return res.status(400).json({ message: 'Email is required' });
     }
 
-    // בדיקה אם המשתמש קיים
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(404).json({ message: 'No user found with this email address' });
     }
-
-    // כאן תוכל להוסיף לוגיקה לשליחת מייל עם לינק לאיפוס סיסמה
-    // לעת עתה, פשוט נחזיר הודעת הצלחה
 
     res.json({
       message: 'Password reset instructions sent to your email'

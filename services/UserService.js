@@ -24,16 +24,6 @@ class UserService {
       return response.data;
       
     } catch (error) {
-      console.error('❌ UserService: Search users error:', error);
-      
-      if (error.response) {
-        console.error('Response error:', error.response.status, error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Request setup error:', error.message);
-      }
-      
       return [];
     }
   }
@@ -44,7 +34,7 @@ class UserService {
       
       const deleteData = {
         userId: userId,
-        password: password, // אישור סיסמה לבטיחות
+        password: password, 
         confirmDelete: true
       };
 
@@ -66,7 +56,7 @@ class UserService {
               'Content-Type': 'application/json',
               'x-user-id': userId,
             },
-            timeout: 15000, // 15 שניות למחיקה
+            timeout: 15000, 
           });
 
           if (response.data.success || response.status === 200) {
@@ -78,7 +68,6 @@ class UserService {
             };
           }
         } catch (error) {
-          // אם זה שגיאת authentication או validation, תזרוק מיד
           if (error.response && (error.response.status === 401 || error.response.status === 403)) {
             throw new Error(error.response.data.message || 'Authentication failed. Please check your password.');
           }
@@ -91,7 +80,6 @@ class UserService {
       throw new Error('Account deletion endpoint not available. Please contact support.');
       
     } catch (error) {
-      console.error('❌ Delete user account error:', error);
       return {
         success: false,
         message: error.message || 'Failed to delete account'
@@ -280,7 +268,6 @@ class UserService {
       };
       
     } catch (error) {
-      console.error('❌ Avatar upload error:', error);
       return {
         success: false,
         message: 'An error occurred while uploading the image'
@@ -345,7 +332,6 @@ class UserService {
       };
       
     } catch (error) {
-      console.error('❌ Update profile error:', error);
       return {
         success: false,
         message: 'An error occurred while updating profile'
@@ -374,7 +360,6 @@ class UserService {
         data: response.data.user
       };
     } catch (error) {
-      console.error('❌ Get user profile error:', error);
       
       if (error.response?.status === 404) {
         return {

@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 
-// Middleware לאימות טוקן
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -28,7 +27,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// הגדרת multer לטיפול בתמונות
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/recipes/');
@@ -51,11 +49,10 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 5 * 1024 * 1024 
   }
 });
 
-// יצירת מתכון חדש
 router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     const {
@@ -105,7 +102,6 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
   }
 });
 
-// שאר הפונקציות לא השתנו:
 router.get('/', async (req, res) => {
   try {
     const recipes = await Recipe.find()

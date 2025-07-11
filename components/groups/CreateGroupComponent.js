@@ -1,4 +1,3 @@
-// components/groups/CreateGroupComponent.js
 
 import React, { useState } from 'react';
 import {
@@ -50,20 +49,17 @@ const CATEGORIES = [
 const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
   const { currentUser } = useAuth();
   
-  // Form state
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('General');
   const [rules, setRules] = useState('');
   const [groupImage, setGroupImage] = useState(null);
   
-  // Settings state
   const [isPrivate, setIsPrivate] = useState(false);
   const [allowMemberPosts, setAllowMemberPosts] = useState(true);
   const [requireApproval, setRequireApproval] = useState(true);
   const [allowInvites, setAllowInvites] = useState(true);
   
-  // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
@@ -79,7 +75,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [16, 9], // תמונת כיסוי
+        aspect: [16, 9], 
         quality: 0.8,
       });
 
@@ -93,7 +89,6 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
   };
 
   const handleCreateGroup = async () => {
-    // Validation
     if (!groupName.trim()) {
       Alert.alert('Validation Error', 'Please enter a group name');
       return;
@@ -112,7 +107,6 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
     setIsLoading(true);
 
     try {
-      // הכנת הנתונים
       const groupData = {
         name: groupName.trim(),
         description: description.trim(),
@@ -127,7 +121,6 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
 
       console.log('Creating group with data:', groupData);
 
-      // יצירת הקבוצה
       const result = await groupService.createGroup(groupData, groupImage?.uri);
 
       if (result.success) {
@@ -192,7 +185,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -217,7 +210,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* תמונת כיסוי */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Group Cover Image</Text>
           <TouchableOpacity 
@@ -238,7 +231,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
           </TouchableOpacity>
         </View>
 
-        {/* מידע בסיסי */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Information</Text>
           
@@ -287,7 +280,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
           </View>
         </View>
 
-        {/* הגדרות קבוצה */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Group Settings</Text>
           
@@ -352,7 +345,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
           </View>
         </View>
 
-        {/* חוקי הקבוצה */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Group Rules (Optional)</Text>
           <View style={styles.inputGroup}>
@@ -371,7 +364,7 @@ const CreateGroupComponent = ({ navigation, onGroupCreated }) => {
           </View>
         </View>
 
-        {/* כפתור יצירה */}
+        {/**/}
         <View style={styles.buttonSection}>
           <TouchableOpacity
             style={[styles.createFullButton, isLoading && styles.createFullButtonDisabled]}

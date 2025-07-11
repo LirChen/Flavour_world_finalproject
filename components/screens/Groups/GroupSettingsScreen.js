@@ -45,7 +45,6 @@ const GroupSettingsScreen = ({ route, navigation }) => {
   const { currentUser } = useAuth();
   const { groupId, groupData } = route.params;
   
-  // State for form data
   const [formData, setFormData] = useState({
     name: groupData?.name || '',
     description: groupData?.description || '',
@@ -62,7 +61,6 @@ const GroupSettingsScreen = ({ route, navigation }) => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  // Check permissions
   const isCreator = groupService.isCreator(groupData, currentUser?.id || currentUser?._id);
   const isAdmin = groupService.isAdmin(groupData, currentUser?.id || currentUser?._id);
   const canEdit = isCreator || isAdmin;
@@ -127,7 +125,6 @@ const GroupSettingsScreen = ({ route, navigation }) => {
 
     setLoading(true);
     try {
-      // Prepare update data
       const updateData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -140,7 +137,6 @@ const GroupSettingsScreen = ({ route, navigation }) => {
         updatedBy: currentUser?.id || currentUser?._id
       };
 
-      // Check if image changed
       const imageUri = selectedImage !== groupData?.image ? selectedImage : null;
 
       const result = await groupService.updateGroup(groupId, updateData, imageUri);
@@ -295,7 +291,7 @@ const GroupSettingsScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={FLAVORWORLD_COLORS.white} />
       
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.headerBackButton} 
@@ -320,7 +316,7 @@ const GroupSettingsScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Cover Image Section */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cover Image</Text>
           <TouchableOpacity style={styles.imageContainer} onPress={handleImagePicker}>
@@ -338,7 +334,7 @@ const GroupSettingsScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Basic Information */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Information</Text>
           
@@ -391,7 +387,7 @@ const GroupSettingsScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Privacy Settings */}
+        {/**/}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Privacy & Permissions</Text>
           
@@ -462,7 +458,7 @@ const GroupSettingsScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Danger Zone */}
+        {/**/}
         {isCreator && (
           <View style={[styles.section, styles.dangerSection]}>
             <Text style={[styles.sectionTitle, styles.dangerTitle]}>Danger Zone</Text>

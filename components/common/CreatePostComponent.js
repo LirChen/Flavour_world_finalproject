@@ -17,7 +17,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/GroupService';
 
-// צבעי FlavorWorld
 const FLAVORWORLD_COLORS = {
   primary: '#F5A623',
   secondary: '#4ECDC4',
@@ -45,8 +44,8 @@ const MEAT_TYPES = [
 const CreatePostComponent = ({ 
   onPostCreated, 
   currentUser, 
-  groupId = null, // ⬅️ חדש! אם יש groupId זה פוסט לקבוצה
-  groupName = null // ⬅️ חדש! שם הקבוצה להצגה
+  groupId = null, 
+  groupName = null 
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -64,7 +63,6 @@ const CreatePostComponent = ({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showMeatTypeModal, setShowMeatTypeModal] = useState(false);
 
-  // בדיקה אם זה פוסט לקבוצה
   const isGroupPost = !!groupId;
 
   const validateForm = () => {
@@ -98,14 +96,12 @@ const CreatePostComponent = ({
       newErrors.servings = 'Number of servings is required';
     }
     
-    // Validate prep time
     const hours = parseInt(prepTimeHours) || 0;
     const minutes = parseInt(prepTimeMinutes) || 0;
     if (hours === 0 && minutes === 0) {
       newErrors.prepTime = 'Preparation time is required';
     }
 
-    // Validate servings is a number
     if (servings && isNaN(parseInt(servings))) {
       newErrors.servings = 'Servings must be a number';
     }
@@ -178,11 +174,9 @@ const CreatePostComponent = ({
       let result;
 
       if (isGroupPost) {
-        // ⬅️ פוסט לקבוצה
         console.log('📤 Creating group post...');
         result = await groupService.createGroupPost(groupId, recipeData, image?.uri);
       } else {
-        // ⬅️ פוסט רגיל לעמוד הבית
         console.log('📤 Creating regular post...');
         const regularRecipeData = {
           ...recipeData,
@@ -202,7 +196,6 @@ const CreatePostComponent = ({
 
         Alert.alert(successMessage, successDescription);
         
-        // Reset form
         setTitle('');
         setDescription('');
         setIngredients('');
@@ -258,7 +251,6 @@ const CreatePostComponent = ({
     />
   );
 
-  // הצגת כותרת מותאמת
   const getHeaderInfo = () => {
     if (isGroupPost) {
       return {
@@ -278,7 +270,7 @@ const CreatePostComponent = ({
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header אם זה פוסט לקבוצה */}
+      {/**/}
       {isGroupPost && (
         <View style={styles.groupHeader}>
           <View style={styles.groupHeaderIcon}>
@@ -292,7 +284,7 @@ const CreatePostComponent = ({
       )}
 
       <View style={styles.form}>
-        {/* Recipe Title */}
+        {/**/}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Recipe Title *</Text>
           <TextInput
@@ -308,7 +300,7 @@ const CreatePostComponent = ({
           {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
         </View>
 
-        {/* Recipe Description */}
+        {/**/}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Description *</Text>
           <TextInput
@@ -326,7 +318,7 @@ const CreatePostComponent = ({
           {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
         </View>
 
-        {/* Category and Meat Type Row */}
+        {/**/}
         <View style={styles.rowContainer}>
           <View style={styles.halfWidth}>
             <Text style={styles.label}>Category *</Text>
@@ -357,7 +349,7 @@ const CreatePostComponent = ({
           </View>
         </View>
 
-        {/* Prep Time and Servings Row */}
+        {/**/}
         <View style={styles.rowContainer}>
           <View style={styles.halfWidth}>
             <Text style={styles.label}>Prep Time *</Text>
@@ -410,7 +402,7 @@ const CreatePostComponent = ({
           </View>
         </View>
 
-        {/* Ingredients */}
+        {/**/}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Ingredients *</Text>
           <TextInput
@@ -428,7 +420,7 @@ const CreatePostComponent = ({
           {errors.ingredients && <Text style={styles.errorText}>{errors.ingredients}</Text>}
         </View>
 
-        {/* Instructions */}
+        {/**/}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Instructions *</Text>
           <TextInput
@@ -446,7 +438,7 @@ const CreatePostComponent = ({
           {errors.instructions && <Text style={styles.errorText}>{errors.instructions}</Text>}
         </View>
 
-        {/* Image Picker */}
+        {/**/}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Recipe Photo</Text>
           <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
@@ -470,7 +462,7 @@ const CreatePostComponent = ({
           </TouchableOpacity>
         </View>
 
-        {/* Submit Button */}
+        {/**/}
         <TouchableOpacity
           style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -494,7 +486,7 @@ const CreatePostComponent = ({
         </TouchableOpacity>
       </View>
 
-      {/* Category Modal */}
+      {/**/}
       <Modal
         visible={showCategoryModal}
         animationType="slide"
@@ -518,7 +510,7 @@ const CreatePostComponent = ({
         </View>
       </Modal>
 
-      {/* Meat Type Modal */}
+      {/**/}
       <Modal
         visible={showMeatTypeModal}
         animationType="slide"

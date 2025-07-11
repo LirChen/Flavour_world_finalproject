@@ -18,7 +18,6 @@ class StatisticsService {
       (response) => response,
       (error) => {
         if (error.response?.status >= 500) {
-          console.error('Server error occurred');
         }
         return Promise.reject(error);
       }
@@ -53,7 +52,6 @@ class StatisticsService {
         };
       }
     } catch (error) {
-      console.error('Statistics fetch failed');
       
       if (error.response) {
         return {
@@ -95,7 +93,6 @@ class StatisticsService {
         };
       }
     } catch (error) {
-      console.error('Likes progression fetch failed');
       return {
         success: false,
         message: error.response?.data?.message || 'Network error occurred'
@@ -136,7 +133,6 @@ class StatisticsService {
         };
       }
     } catch (error) {
-      console.error('Followers data fetch failed');
       return {
         success: false,
         message: error.response?.data?.message || 'Network error occurred'
@@ -164,7 +160,6 @@ class StatisticsService {
         };
       }
     } catch (error) {
-      console.error('Categories distribution fetch failed');
       return {
         success: false,
         message: error.response?.data?.message || 'Network error occurred'
@@ -242,7 +237,6 @@ class StatisticsService {
         data: response.data
       };
     } catch (error) {
-      console.error('Server connection failed');
       return {
         success: false,
         message: 'Server connection failed',
@@ -272,7 +266,6 @@ class StatisticsService {
         };
       }
     } catch (error) {
-      console.error('Statistics update error occurred');
       return {
         success: false,
         message: error.response?.data?.message || 'Network error occurred'

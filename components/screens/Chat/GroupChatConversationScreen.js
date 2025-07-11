@@ -1,4 +1,3 @@
-// components/screens/chat/GroupChatConversationScreen.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -64,7 +63,6 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
   }, [chatId]);
 
   useEffect(() => {
-    // Animate attachment options
     if (showAttachments) {
       Animated.spring(attachmentSlideAnim, {
         toValue: 1,
@@ -101,10 +99,8 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
       if (result.success) {
         setMessages(result.data || []);
         
-        // Mark messages as read
         await chatService.markGroupChatAsRead(chatId);
         
-        // Scroll to bottom
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: false });
         }, 100);
@@ -132,10 +128,8 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
       const result = await chatService.sendGroupChatMessage(chatId, messageContent, messageType);
       
       if (result.success) {
-        // Add new message to list
         setMessages(prevMessages => [...prevMessages, result.data]);
         
-        // Scroll to bottom
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -227,18 +221,15 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
   const handleInputChange = (text) => {
     setInputText(text);
     
-    // Typing indicator
     if (!isTyping) {
       setIsTyping(true);
       chatService.startTyping(chatId);
     }
     
-    // Reset timer
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
     
-    // Stop typing after 3 seconds
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       chatService.stopTyping(chatId);
@@ -273,7 +264,6 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
     setShowImageModal(true);
   };
 
-  // 🆕 פונקציה לנווט להגדרות הקבוצה
   const navigateToSettings = () => {
     navigation.navigate('GroupChatSettings', {
       chatId,
@@ -290,7 +280,6 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
   const renderMessageContent = (item) => {
     const isMine = isMyMessage(item);
     
-    // הודעות מערכת
     if (item.isSystemMessage) {
       return renderSystemMessage(item);
     }
@@ -393,7 +382,6 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
   };
 
   const renderMessage = ({ item, index }) => {
-    // הודעות מערכת
     if (item.isSystemMessage) {
       return renderSystemMessage(item);
     }
@@ -427,7 +415,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
         )}
         
         <View style={styles.messageContent}>
-          {/* שם השולח (רק בצ'אטים קבוצתיים ולא להודעות שלי) */}
+          {/**/}
           {!isMine && showSenderName && (
             <Text style={styles.senderName}>{item.senderName}</Text>
           )}
@@ -478,7 +466,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -528,7 +516,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Messages List */}
+        {/**/}
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -549,7 +537,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
           }
         />
 
-        {/* Attachment Options */}
+        {/**/}
         {showAttachments && (
           <Animated.View 
             style={[
@@ -602,7 +590,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
           </Animated.View>
         )}
 
-        {/* Selected Image Preview */}
+        {/**/}
         {selectedImage && (
           <View style={styles.selectedImageContainer}>
             <Image source={{ uri: selectedImage }} style={styles.selectedImage} />
@@ -615,7 +603,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Input Container */}
+        {/**/}
         <View style={styles.inputContainer}>
           <View style={styles.inputRow}>
             <TouchableOpacity
@@ -661,7 +649,7 @@ const GroupChatConversationScreen = ({ route, navigation }) => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Image Modal */}
+      {/**/}
       <Modal
         visible={showImageModal}
         transparent={true}

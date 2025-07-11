@@ -46,7 +46,7 @@ const recipeSchema = new mongoose.Schema({
     min: 1
   },
   image: {
-    type: String, // URL של התמונה
+    type: String, 
     default: null
   },
   userId: {

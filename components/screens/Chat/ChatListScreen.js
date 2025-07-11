@@ -1,4 +1,3 @@
-// components/screens/chat/ChatListScreen.js
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -52,7 +51,6 @@ const ChatListScreen = ({ navigation }) => {
     if (currentUser?.id || currentUser?._id) {
       await chatService.initializeSocket(currentUser.id || currentUser._id);
       
-      // האזנה להודעות חדשות לעדכון הרשימה
       const unsubscribe = chatService.onMessage((message) => {
         updateChatWithNewMessage(message);
       });
@@ -64,7 +62,7 @@ const ChatListScreen = ({ navigation }) => {
   const loadChats = async () => {
     try {
       setLoading(true);
-      const result = await chatService.getAllChats(); // שינוי כאן
+      const result = await chatService.getAllChats(); 
       
       if (result.success) {
         setChats(result.data || []);
@@ -83,7 +81,6 @@ const ChatListScreen = ({ navigation }) => {
   const updateChatWithNewMessage = (message) => {
     setChats(prevChats => {
       return prevChats.map(chat => {
-        // עדכון צ'אט פרטי
         if (chat.chatType === 'private' && chat._id === message.chatId) {
           return {
             ...chat,
@@ -93,7 +90,6 @@ const ChatListScreen = ({ navigation }) => {
           };
         }
         
-        // עדכון צ'אט קבוצתי
         if (chat.chatType === 'group' && chat._id === message.groupChatId) {
           return {
             ...chat,
@@ -132,7 +128,6 @@ const ChatListScreen = ({ navigation }) => {
     }
   };
 
-  // פונקציה לקבלת המשתמש השני בצ'אט פרטי
   const getOtherUser = (chat) => {
     if (chat.chatType !== 'private' || !chat.participants || chat.participants.length < 2) {
       return null;
@@ -145,16 +140,13 @@ const ChatListScreen = ({ navigation }) => {
     return otherUser || null;
   };
 
-  // פונקציה לטיפול בלחיצה על צ'אט
   const handleChatPress = (chat) => {
     if (chat.chatType === 'group') {
-      // נווט לצ'אט קבוצתי
       navigation.navigate('GroupChatConversation', {
         chatId: chat._id,
         groupChat: chat,
       });
     } else {
-      // צ'אט פרטי
       const otherUser = getOtherUser(chat);
       if (otherUser) {
         navigation.navigate('ChatConversation', {
@@ -165,18 +157,15 @@ const ChatListScreen = ({ navigation }) => {
     }
   };
 
-  // פונקציה לפתיחת מודל יצירת צ'אט
   const handleCreateChat = () => {
     setShowChatTypeModal(true);
   };
 
-  // פונקציה ליצירת צ'אט קבוצתי
   const handleCreateGroupChat = () => {
     setShowChatTypeModal(false);
     navigation.navigate('GroupChatCreation');
   };
 
-  // פונקציה ליצירת צ'אט פרטי (חיפוש משתמשים)
   const handleCreatePrivateChat = () => {
     setShowChatTypeModal(false);
     navigation.navigate('UserSearch', { 
@@ -188,12 +177,10 @@ const ChatListScreen = ({ navigation }) => {
   const filteredChats = chats.filter(chat => {
     if (!searchQuery.trim()) return true;
     
-    // חיפוש בצ'אטים קבוצתיים
     if (chat.chatType === 'group') {
       return chat.name?.toLowerCase().includes(searchQuery.toLowerCase());
     }
     
-    // חיפוש בצ'אטים פרטיים
     const otherUser = getOtherUser(chat);
     if (!otherUser) return false;
     
@@ -206,14 +193,13 @@ const ChatListScreen = ({ navigation }) => {
     const lastMessage = item.lastMessage;
 
     if (isGroupChat) {
-      // רנדור צ'אט קבוצתי
       return (
         <TouchableOpacity
           style={styles.chatItem}
           onPress={() => handleChatPress(item)}
           activeOpacity={0.7}
         >
-          {/* Avatar קבוצה */}
+          {/**/}
           <View style={styles.groupAvatarContainer}>
             {item.image ? (
               <UserAvatar
@@ -238,7 +224,7 @@ const ChatListScreen = ({ navigation }) => {
                 ]}>
                   {item.name}
                 </Text>
-                {/* אייקון צ'אט קבוצתי */}
+                {/**/}
                 <Ionicons 
                   name="people" 
                   size={14} 
@@ -284,7 +270,6 @@ const ChatListScreen = ({ navigation }) => {
         </TouchableOpacity>
       );
     } else {
-      // רנדור צ'אט פרטי
       const otherUser = getOtherUser(item);
       if (!otherUser) return null;
 
@@ -357,7 +342,6 @@ const ChatListScreen = ({ navigation }) => {
     </View>
   );
 
-  // מודל בחירת סוג צ'אט
   const renderChatTypeModal = () => (
     <Modal
       visible={showChatTypeModal}
@@ -428,7 +412,7 @@ const ChatListScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -440,7 +424,7 @@ const ChatListScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>Chats</Text>
         
         <View style={styles.headerRight}>
-          {/* כפתור יצירת צ'אט */}
+          {/**/}
           <TouchableOpacity 
             style={styles.createButton}
             onPress={handleCreateChat}
@@ -451,7 +435,7 @@ const ChatListScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Search */}
+      {/**/}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
@@ -470,7 +454,7 @@ const ChatListScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Chat List */}
+      {/**/}
       <FlatList
         data={filteredChats}
         keyExtractor={(item) => item._id}
@@ -488,7 +472,7 @@ const ChatListScreen = ({ navigation }) => {
         contentContainerStyle={filteredChats.length === 0 ? styles.emptyList : null}
       />
 
-      {/* מודל בחירת סוג צ'אט */}
+      {/**/}
       {renderChatTypeModal()}
     </SafeAreaView>
   );

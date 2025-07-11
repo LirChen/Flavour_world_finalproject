@@ -1,5 +1,3 @@
-// components/screens/profile/ProfileScreen.js
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -19,7 +17,8 @@ import { useAuth } from '../../../services/AuthContext';
 import { recipeService } from '../../../services/recipeService';
 import { userService } from '../../../services/UserService';
 import { chatService } from '../../../services/chatServices';
-import { statisticsService } from '../../../services/statisticsService'; // הוספנו את השירות
+import { statisticsService } from '../../../services/statisticsService';
+import { groupService } from '../../../services/GroupService'; 
 import UserAvatar from '../../common/UserAvatar';
 import PostComponent from '../../common/PostComponent';
 
@@ -43,22 +42,19 @@ const ProfileScreen = ({ route, navigation }) => {
   const [profileUser, setProfileUser] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState('posts');
+  const [selectedTab, setSelectedTab] = useState('posts'); 
   const [stats, setStats] = useState({
     postsCount: 0,
     likesCount: 0,
     followersCount: 0
   });
 
-  // Follow system state
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
   
-  // Settings modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   
-  // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -86,7 +82,6 @@ const ProfileScreen = ({ route, navigation }) => {
           
           await loadFollowStatus();
         } else {
-          console.error('Failed to load user profile');
           Alert.alert('Error', 'Failed to load user profile');
           navigation.goBack();
           return;
@@ -96,7 +91,6 @@ const ProfileScreen = ({ route, navigation }) => {
       await loadUserPosts();
       
     } catch (error) {
-      console.error('Profile load error occurred');
       Alert.alert('Error', 'Failed to load profile');
     } finally {
       setLoading(false);
@@ -123,51 +117,126 @@ const ProfileScreen = ({ route, navigation }) => {
         
         console.log('Follow status loaded successfully');
       } else {
-        console.error('Failed to load follow status');
       }
     } catch (error) {
-      console.error('Load follow status error occurred');
+    }
+  };
+
+  const loadUserGroupPosts = async () => {
+    try {
+      console.log('Loading user group posts');
+      
+      const groupsResult = await groupService.getAllGroups(userId);
+      
+      if (!groupsResult.success) {
+        return { success: false, data: [] };
+      }
+
+      const userGroups = groupsResult.data.filter(group => 
+        groupService.isMember(group, userId)
+      );
+
+      console.log(`User is member of ${userGroups.length} groups`);
+      
+      let allGroupPosts = [];
+      
+      for (const group of userGroups) {
+        try {
+          const groupPostsResult = await groupService.getGroupPosts(group._id, userId);
+          
+          if (groupPostsResult.success && groupPostsResult.data) {
+            const userPostsInGroup = groupPostsResult.data.filter(post => 
+              post.userId === userId || 
+              post.user?.id === userId || 
+              post.user?._id === userId
+            );
+            
+            const postsWithGroupInfo = userPostsInGroup.map(post => ({
+              ...post,
+              groupName: group.name,
+              groupId: group._id
+            }));
+            
+            allGroupPosts = [...allGroupPosts, ...postsWithGroupInfo];
+            console.log(`Found ${userPostsInGroup.length} posts in group ${group.name}`);
+          }
+        } catch (groupPostError) {
+          console.log(`Could not load posts for group ${group.name}:`, groupPostError);
+          continue;
+        }
+      }
+
+      console.log(`Total group posts found: ${allGroupPosts.length}`);
+      
+      return {
+        success: true,
+        data: allGroupPosts
+      };
+      
+    } catch (error) {
+      return { success: false, data: [] };
     }
   };
 
   const loadUserPosts = async () => {
     try {
-      console.log('Loading user posts');
-      const result = await recipeService.getAllRecipes();
+      console.log('Loading user posts including group posts');
       
-      if (result.success) {
-        const allPosts = Array.isArray(result.data) ? result.data : [];
-        const filteredPosts = allPosts.filter(post => 
+      const regularPostsResult = await recipeService.getAllRecipes();
+      let allPosts = [];
+      
+      if (regularPostsResult.success) {
+        const regularPosts = Array.isArray(regularPostsResult.data) ? regularPostsResult.data : [];
+        const userRegularPosts = regularPosts.filter(post => 
           post.userId === userId || 
           post.user?.id === userId || 
           post.user?._id === userId
         );
-
-        console.log('User posts loaded successfully');
-
-        const sortedPosts = filteredPosts.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
-
-        setUserPosts(sortedPosts);
-
-        // משתמשים בשירות הסטטיסטיקות לחישוב מדויק
-        await calculateUserStatistics(sortedPosts);
+        
+        const markedRegularPosts = userRegularPosts.map(post => ({
+          ...post,
+          postSource: 'personal'
+        }));
+        
+        allPosts = [...markedRegularPosts];
+        console.log('Regular posts loaded:', markedRegularPosts.length);
       }
+
+      try {
+        const groupPostsResult = await loadUserGroupPosts();
+        
+        if (groupPostsResult.success && groupPostsResult.data) {
+          const userGroupPosts = groupPostsResult.data.map(post => ({
+            ...post,
+            postSource: 'group'
+          }));
+          
+          allPosts = [...allPosts, ...userGroupPosts];
+          console.log('Group posts loaded:', userGroupPosts.length);
+        }
+      } catch (groupError) {
+        console.log('Could not load group posts:', groupError);
+      }
+
+      console.log('Total user posts loaded:', allPosts.length);
+
+      const sortedPosts = allPosts.sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setUserPosts(sortedPosts);
+      await calculateUserStatistics(sortedPosts);
+      
     } catch (error) {
-      console.error('Posts load error occurred');
     }
   };
 
-  // פונקציה חדשה לחישוב סטטיסטיקות מדויקות
   const calculateUserStatistics = async (posts) => {
     try {
       console.log('Calculating user statistics using statistics service');
       
-      // משתמשים בשירות הסטטיסטיקות לעיבוד נתונים אמיתיים
       const statsData = statisticsService.processRealUserData(posts, userId);
       
-      // מנסים לקבל נתוני עוקבים אמיתיים מהשרת
       let followersCount = 0;
       try {
         const followersResult = await statisticsService.getFollowersGrowth(userId);
@@ -182,7 +251,6 @@ const ProfileScreen = ({ route, navigation }) => {
         followersCount = 0;
       }
 
-      // עדכון הסטטיסטיקות עם הנתונים המדויקים
       setStats({
         postsCount: statsData.totalPosts,
         likesCount: statsData.totalLikes,
@@ -196,9 +264,7 @@ const ProfileScreen = ({ route, navigation }) => {
       });
 
     } catch (error) {
-      console.error('Statistics calculation error:', error);
       
-      // במקרה של שגיאה, נחזור לחישוב פשוט
       const totalLikes = posts.reduce((sum, post) => 
         sum + (post.likes ? post.likes.length : 0), 0
       );
@@ -241,7 +307,6 @@ const ProfileScreen = ({ route, navigation }) => {
         Alert.alert('Error', result.message || 'Failed to update follow status');
       }
     } catch (error) {
-      console.error('Follow toggle error occurred');
       Alert.alert('Error', 'Failed to update follow status');
     } finally {
       setIsFollowLoading(false);
@@ -280,7 +345,6 @@ const ProfileScreen = ({ route, navigation }) => {
         Alert.alert('Error', result.message || 'Failed to start chat');
       }
     } catch (error) {
-      console.error('Start chat error occurred');
       Alert.alert('Error', 'Failed to start chat');
     } finally {
       setStartingChat(false);
@@ -295,11 +359,9 @@ const ProfileScreen = ({ route, navigation }) => {
         listType: 'followers'
       });
     } catch (error) {
-      console.error('Navigate to followers error occurred');
     }
   };
 
-  // פונקציה לפתיחת מסך הסטטיסטיקות
   const handleViewStatistics = () => {
     console.log('Navigating to UserStatistics');
     
@@ -322,12 +384,10 @@ const ProfileScreen = ({ route, navigation }) => {
     navigation.navigate('Groups');
   };
 
-  // פונקציה מעודכנת להגדרות
   const handleSettings = () => {
     setShowSettingsModal(true);
   };
 
-  // פונקציה למחיקת חשבון
   const handleDeleteAccount = () => {
     setShowSettingsModal(false);
     
@@ -350,7 +410,6 @@ const ProfileScreen = ({ route, navigation }) => {
     );
   };
 
-  // פונקציה לביצוע מחיקת החשבון
   const confirmDeleteAccount = async () => {
     if (!deletePassword.trim()) {
       Alert.alert('Error', 'Please enter your password to confirm deletion');
@@ -373,7 +432,7 @@ const ProfileScreen = ({ route, navigation }) => {
               text: 'OK',
               onPress: () => {
                 setShowDeleteModal(false);
-                logout(); // התנתקות וחזרה למסך הכניסה
+                logout(); 
               }
             }
           ],
@@ -384,10 +443,21 @@ const ProfileScreen = ({ route, navigation }) => {
       }
       
     } catch (error) {
-      console.error('Delete account error:', error);
       Alert.alert('Error', 'An error occurred while deleting your account. Please try again or contact support.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const getFilteredPosts = () => {
+    switch (selectedTab) {
+      case 'personal':
+        return userPosts.filter(post => post.postSource === 'personal');
+      case 'groups':
+        return userPosts.filter(post => post.postSource === 'group');
+      case 'posts':
+      default:
+        return userPosts; 
     }
   };
 
@@ -498,7 +568,6 @@ const ProfileScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Quick Actions - עם כפתור סטטיסטיקות מעודכן */}
       {isOwnProfile && (
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickActionItem} onPress={handleMyGroups}>
@@ -520,7 +589,6 @@ const ProfileScreen = ({ route, navigation }) => {
             <Ionicons name="chevron-forward" size={16} color={FLAVORWORLD_COLORS.textLight} />
           </TouchableOpacity>
 
-          {/* כפתור סטטיסטיקות במקום מתכונים שמורים */}
           <TouchableOpacity 
             style={styles.quickActionItem} 
             onPress={handleViewStatistics}
@@ -550,47 +618,59 @@ const ProfileScreen = ({ route, navigation }) => {
         <Text style={[
           styles.tabText,
           selectedTab === 'posts' && styles.activeTabText
-        ]}>Recipes</Text>
+        ]}>All Recipes</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.tab, selectedTab === 'liked' && styles.activeTab]}
-        onPress={() => setSelectedTab('liked')}
+        style={[styles.tab, selectedTab === 'personal' && styles.activeTab]}
+        onPress={() => setSelectedTab('personal')}
       >
         <Ionicons 
-          name="heart-outline" 
+          name="person-outline" 
           size={20} 
-          color={selectedTab === 'liked' ? FLAVORWORLD_COLORS.primary : FLAVORWORLD_COLORS.textLight} 
+          color={selectedTab === 'personal' ? FLAVORWORLD_COLORS.primary : FLAVORWORLD_COLORS.textLight} 
         />
         <Text style={[
           styles.tabText,
-          selectedTab === 'liked' && styles.activeTabText
-        ]}>Liked</Text>
+          selectedTab === 'personal' && styles.activeTabText
+        ]}>Personal</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.tab, selectedTab === 'saved' && styles.activeTab]}
-        onPress={() => setSelectedTab('saved')}
+        style={[styles.tab, selectedTab === 'groups' && styles.activeTab]}
+        onPress={() => setSelectedTab('groups')}
       >
         <Ionicons 
-          name="bookmark-outline" 
+          name="people-outline" 
           size={20} 
-          color={selectedTab === 'saved' ? FLAVORWORLD_COLORS.primary : FLAVORWORLD_COLORS.textLight} 
+          color={selectedTab === 'groups' ? FLAVORWORLD_COLORS.primary : FLAVORWORLD_COLORS.textLight} 
         />
         <Text style={[
           styles.tabText,
-          selectedTab === 'saved' && styles.activeTabText
-        ]}>Saved</Text>
+          selectedTab === 'groups' && styles.activeTabText
+        ]}>Groups</Text>
       </TouchableOpacity>
     </View>
   );
 
   const renderPost = ({ item }) => (
-    <PostComponent
-      post={item}
-      navigation={navigation}
-      onRefreshData={handleRefreshData}
-    />
+    <View>
+      {/**/}
+      {item.postSource === 'group' && (
+        <View style={styles.groupPostBadge}>
+          <Ionicons name="people" size={14} color={FLAVORWORLD_COLORS.secondary} />
+          <Text style={styles.groupPostBadgeText}>
+            Posted in {item.groupName || 'Group'}
+          </Text>
+        </View>
+      )}
+      
+      <PostComponent
+        post={item}
+        navigation={navigation}
+        onRefreshData={handleRefreshData}
+      />
+    </View>
   );
 
   const renderEmptyState = () => (
@@ -598,17 +678,18 @@ const ProfileScreen = ({ route, navigation }) => {
       <Ionicons name="restaurant-outline" size={80} color={FLAVORWORLD_COLORS.textLight} />
       <Text style={styles.emptyTitle}>
         {selectedTab === 'posts' ? 'No Recipes Yet' : 
-         selectedTab === 'liked' ? 'No Liked Recipes' : 'No Saved Recipes'}
+         selectedTab === 'personal' ? 'No Personal Recipes' : 'No Group Recipes'}
       </Text>
       <Text style={styles.emptySubtitle}>
         {selectedTab === 'posts' && isOwnProfile ? 
          'Share your first delicious recipe!' : 
-         'Start exploring and liking recipes!'}
+         selectedTab === 'personal' ? 'Create your first personal recipe!' :
+         'Join groups and start sharing recipes!'}
       </Text>
     </View>
   );
 
- const renderSettingsModal = () => (
+  const renderSettingsModal = () => (
     <Modal
       visible={showSettingsModal}
       transparent={true}
@@ -659,7 +740,6 @@ const ProfileScreen = ({ route, navigation }) => {
     </Modal>
   );
 
-  // Delete Account Modal
   const renderDeleteModal = () => (
     <Modal
       visible={showDeleteModal}
@@ -766,7 +846,7 @@ const ProfileScreen = ({ route, navigation }) => {
       </View>
 
       <FlatList
-        data={selectedTab === 'posts' ? userPosts : []}
+        data={getFilteredPosts()}
         keyExtractor={(item) => item._id || item.id}
         renderItem={renderPost}
         ListHeaderComponent={() => (
@@ -780,7 +860,6 @@ const ProfileScreen = ({ route, navigation }) => {
         contentContainerStyle={{ paddingBottom: 20 }}
       />
 
-      {/* Modals */}
       {renderSettingsModal()}
       {renderDeleteModal()}
     </SafeAreaView>
@@ -1013,6 +1092,24 @@ const styles = StyleSheet.create({
     color: FLAVORWORLD_COLORS.primary,
     fontWeight: '600',
   },
+  groupPostBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: FLAVORWORLD_COLORS.background,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: FLAVORWORLD_COLORS.secondary,
+  },
+  groupPostBadgeText: {
+    fontSize: 12,
+    color: FLAVORWORLD_COLORS.secondary,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -1031,7 +1128,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1086,7 +1182,6 @@ const styles = StyleSheet.create({
   dangerText: {
     color: FLAVORWORLD_COLORS.danger,
   },
-  // Delete Modal Styles
   deleteModal: {
     backgroundColor: FLAVORWORLD_COLORS.white,
     borderRadius: 20,

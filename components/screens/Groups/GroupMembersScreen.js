@@ -1,4 +1,3 @@
-// components/screens/groups/GroupMembersScreen.js
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -37,7 +36,6 @@ const GroupMembersScreen = ({ route, navigation }) => {
   const { currentUser } = useAuth();
   const { groupId, groupName } = route.params;
   
-  // State
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
@@ -46,7 +44,6 @@ const GroupMembersScreen = ({ route, navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [removingMemberId, setRemovingMemberId] = useState(null);
 
-  // נתונים נגזרים
   const isAdmin = group ? groupService.isAdmin(group, currentUser?.id || currentUser?._id) : false;
   const isCreator = group ? groupService.isCreator(group, currentUser?.id || currentUser?._id) : false;
   const canManageMembers = isAdmin || isCreator;
@@ -63,7 +60,6 @@ const GroupMembersScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       
-      // טען פרטי הקבוצה עם חברים מלאים
       const result = await groupService.getGroupWithMembers(groupId);
       
       if (result.success) {
@@ -134,7 +130,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
               
               if (result.success) {
                 Alert.alert('Success', `${memberName} has been removed from the group`);
-                loadGroupData(); // רענן את הרשימה
+                loadGroupData(); 
               } else {
                 Alert.alert('Error', result.message || 'Failed to remove member');
               }
@@ -223,7 +219,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* תגיות תפקיד */}
+        {/**/}
         <View style={styles.badges}>
           {memberRole === 'owner' && (
             <View style={styles.ownerBadge}>
@@ -237,7 +233,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* כפתורי פעולה */}
+        {/**/}
         <View style={styles.actionButtons}>
           {canPromote && (
             <TouchableOpacity
@@ -305,7 +301,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton} 
@@ -319,7 +315,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
         <View style={styles.placeholder} />
       </View>
 
-      {/* Search Bar */}
+      {/**/}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={FLAVORWORLD_COLORS.textLight} />
@@ -341,7 +337,7 @@ const GroupMembersScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* Members List */}
+      {/**/}
       <FlatList
         data={filteredMembers}
         keyExtractor={(item) => `${item.userId || item._id || Math.random()}`}

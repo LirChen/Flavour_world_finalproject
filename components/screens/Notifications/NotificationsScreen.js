@@ -1,4 +1,3 @@
-// components/screens/notifications/NotificationsScreen.js - גרסה מעודכנת
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -114,26 +113,19 @@ const NotificationsScreen = ({ navigation }) => {
   }, [currentUser]);
 
   const handleNotificationPress = useCallback(async (notification) => {
-    // סמן כנקרא אם עדיין לא נקרא
     if (!notification.read) {
       await handleMarkAsRead(notification._id);
     }
 
-    // נווט למקום המתאים בהתאם לסוג ההתראה
     switch (notification.type) {
       case 'like':
       case 'comment':
         if (notification.postId) {
-          // בדוק אם זה פוסט קבוצה או רגיל
           if (notification.groupId) {
             navigation.navigate('GroupDetails', { 
               groupId: notification.groupId,
-              // יכול להוסיף פה focus על הפוסט הספציפי
             });
           } else {
-            // נווט לפוסט רגיל - תצטרך ליצור מסך PostDetails
-            // navigation.navigate('PostDetails', { postId: notification.postId });
-            // כרגע נחזור להום
             navigation.navigate('Home');
           }
         }
@@ -208,20 +200,20 @@ const NotificationsScreen = ({ navigation }) => {
         activeOpacity={0.7}
       >
         <View style={styles.notificationContent}>
-          {/* אווטר של המשתמש */}
+          {/**/}
           <View style={styles.avatarContainer}>
             <UserAvatar
               uri={item.fromUser?.avatar}
               name={item.fromUser?.name || 'User'}
               size={40}
             />
-            {/* אייקון סוג ההתראה */}
+            {/**/}
             <View style={[styles.notificationIconBadge, { backgroundColor: icon.color }]}>
               <Ionicons name={icon.name} size={12} color={FLAVORWORLD_COLORS.white} />
             </View>
           </View>
 
-          {/* תוכן ההתראה */}
+          {/**/}
           <View style={styles.notificationTextContainer}>
             <Text style={[
               styles.notificationMessage,
@@ -234,13 +226,13 @@ const NotificationsScreen = ({ navigation }) => {
               {getTimeAgo(item.createdAt)}
             </Text>
 
-            {/* תמונה קטנה אם זה קשור לפוסט */}
+            {/**/}
             {(item.type === 'like' || item.type === 'comment' || item.type === 'group_post') && item.postImage && (
               <Image source={{ uri: item.postImage }} style={styles.postThumbnail} />
             )}
           </View>
 
-          {/* נקודה כחולה להתראות שלא נקראו */}
+          {/**/}
           {isUnread && <View style={styles.unreadDot} />}
         </View>
       </TouchableOpacity>
@@ -295,7 +287,7 @@ const NotificationsScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={FLAVORWORLD_COLORS.white} />
       
-      {/* Header */}
+      {/**/}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}

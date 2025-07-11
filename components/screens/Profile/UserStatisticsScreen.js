@@ -71,10 +71,8 @@ const UserStatisticsScreen = ({ route, navigation }) => {
     try {
       console.log('Loading statistics data');
       
-      // עיבוד הנתונים האמיתיים מהמונגו - רק הפוסטים של המשתמש
       const realUserData = statisticsService.processRealUserData(userPosts, userId);
       
-      // נסה לקבל נתוני עוקבים אמיתיים מהשרת
       try {
         const followersResult = await statisticsService.getFollowersGrowth(userId);
         if (followersResult.success && followersResult.data) {
@@ -98,7 +96,6 @@ const UserStatisticsScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error('Statistics loading failed');
       
-      // גם במקרה של שגיאה, עדיין נציג את הנתונים שיש לנו
       const fallbackData = statisticsService.processRealUserData(userPosts, userId);
       setStatsData(fallbackData);
       console.log('Using fallback data');
@@ -107,7 +104,6 @@ const UserStatisticsScreen = ({ route, navigation }) => {
     }
   };
 
-  // גרף התפתחות לייקים - Line Chart
   const renderLikesChart = () => {
     if (!statsData.likesProgression || statsData.likesProgression.length === 0) {
       return (
@@ -153,7 +149,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
           </Defs>
           
           <G x={margin.left} y={margin.top}>
-            {/* Grid lines */}
+            {/**/}
             {yScale.ticks(5).map((tick, index) => (
               <Line
                 key={index}
@@ -167,7 +163,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               />
             ))}
             
-            {/* Line path */}
+            {/**/}
             <Path
               d={pathData}
               fill="none"
@@ -176,7 +172,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               strokeLinecap="round"
             />
             
-            {/* Data points */}
+            {/**/}
             {statsData.likesProgression.map((point, index) => (
               <Circle
                 key={index}
@@ -189,7 +185,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               />
             ))}
             
-            {/* Y-axis labels */}
+            {/**/}
             {yScale.ticks(5).map((tick, index) => (
               <SvgText
                 key={index}
@@ -204,7 +200,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               </SvgText>
             ))}
             
-            {/* X-axis labels */}
+            {/**/}
             {statsData.likesProgression.filter((_, i) => i % 2 === 0).map((point, index) => (
               <SvgText
                 key={index}
@@ -223,7 +219,6 @@ const UserStatisticsScreen = ({ route, navigation }) => {
     );
   };
 
-  // גרף עליית עוקבים - Bar Chart
   const renderFollowersChart = () => {
     if (!statsData.followersGrowth || statsData.followersGrowth.length === 0) {
       return (
@@ -256,7 +251,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
         <Text style={styles.chartTitle}>Followers Growth Over Time</Text>
         <Svg width={chartWidth} height={chartHeight}>
           <G x={margin.left} y={margin.top}>
-            {/* Grid lines */}
+            {/**/}
             {yScale.ticks(5).map((tick, index) => (
               <Line
                 key={index}
@@ -270,7 +265,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               />
             ))}
             
-            {/* Bars */}
+            {/**/}
             {statsData.followersGrowth.map((point, index) => (
               <Rect
                 key={index}
@@ -283,7 +278,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               />
             ))}
             
-            {/* Y-axis labels */}
+            {/**/}
             {yScale.ticks(5).map((tick, index) => (
               <SvgText
                 key={index}
@@ -298,7 +293,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
               </SvgText>
             ))}
             
-            {/* X-axis labels */}
+            {/**/}
             {statsData.followersGrowth.map((point, index) => (
               <SvgText
                 key={index}
@@ -317,7 +312,6 @@ const UserStatisticsScreen = ({ route, navigation }) => {
     );
   };
 
-  // גרף התפלגות קטגוריות - Pie Chart
   const renderCategoriesChart = () => {
     if (!statsData.categoriesDistribution || statsData.categoriesDistribution.length === 0) {
       return (
@@ -391,7 +385,7 @@ const UserStatisticsScreen = ({ route, navigation }) => {
           </G>
         </Svg>
         
-        {/* Legend */}
+        {/**/}
         <View style={styles.legend}>
           {statsData.categoriesDistribution.map((item, index) => (
             <View key={index} style={styles.legendItem}>
